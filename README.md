@@ -1,6 +1,16 @@
-# Stats
+# My fork of Quansheng UV-K5/K6/5R custom firmware
 
-![Alt](https://repobeats.axiom.co/api/embed/947813147857755cef60a960d13734044b3b2c22.svg "Repobeats analytics image")
+## ..... Work in PROGRESS - not for everyday use
+
+> [!WARNING]  
+> To test this version you must bear in mind that it can corrupt the data in the EEPROM, so you must make a backup before using this version.
+>
+> **If you want to have a more stable FW and even with more features, I advise you to look at other options.**
+
+> [!WARNING]  
+> Use this firmware at your own risk (entirely). There is absolutely no guarantee that it will work in any way shape or form on your radio(s), it may even brick your radio(s), in which case, you'd need to buy another radio.
+>
+
 
 # Open re-implementation of the Quansheng UV-K5/K6/5R v2.1.27 firmware
 
@@ -30,16 +40,24 @@ Special thanks to Jean-Cyrille F6IWW (2 times), Fabrice 14RC123, David F4BPP, Ol
 
 ## Table of Contents
 
-* [My Features](#main-features)
-* [Main Features from Egzumer](#main-features-from-egzumer)
-* [Manual](#manual)
-* [Radio Performance](#radio-performance)
-* [Compiler](#compiler)
-* [Building](#building)
-* [Credits](#credits)
-* [Other sources of information](#other-sources-of-information)
-* [License](#license)
-* [Example changes/updates](#example-changesupdates)
+- [My fork of Quansheng UV-K5/K6/5R custom firmware](#my-fork-of-quansheng-uv-k5k65r-custom-firmware)
+  - [..... Work in PROGRESS - not for everyday use](#-work-in-progress---not-for-everyday-use)
+- [Open re-implementation of the Quansheng UV-K5/K6/5R v2.1.27 firmware](#open-re-implementation-of-the-quansheng-uv-k5k65r-v2127-firmware)
+- [Donations](#donations)
+  - [Table of Contents](#table-of-contents)
+  - [Main features and improvements from F4HWN:](#main-features-and-improvements-from-f4hwn)
+  - [Main features from Egzumer:](#main-features-from-egzumer)
+  - [Manual](#manual)
+  - [Radio performance](#radio-performance)
+  - [Compiler](#compiler)
+  - [Building](#building)
+    - [Github Codespace build method](#github-codespace-build-method)
+    - [Docker build method](#docker-build-method)
+    - [Windows environment build method](#windows-environment-build-method)
+  - [Credits](#credits)
+  - [Other sources of information](#other-sources-of-information)
+  - [License](#license)
+  - [Example changes/updates](#example-changesupdates)
 
 ## Main features and improvements from F4HWN:
 
