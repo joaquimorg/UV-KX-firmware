@@ -43,6 +43,8 @@ typedef enum {
 #define UI_DB_STR   "Db"
 
 #define UI_INFO_MESSAGE_STR "BATTERY LOW\nTX DISABLED\nUART IN USE"
+#define UI_BANDWIDTH_STR "WIDE\nNAR\nNAR+"
+#define UI_POWER_STR "LOW1\nLOW2\nLOW3\nLOW4\nLOW5\nMID\nHIGH"
 
 typedef struct {
     u8g2_t *lcd;

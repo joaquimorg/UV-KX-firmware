@@ -1,5 +1,6 @@
 #include "u8g2_hal.h"
 
+#include "systick.h"
 #include "system.h"
 #include "gpio.h"
 #include "spi.h"
@@ -12,7 +13,7 @@ uint8_t u8x8_gpio_and_delay_cb(__attribute__((unused)) u8x8_t* u8g2, uint8_t msg
     switch (msg)
     {
     case U8X8_MSG_DELAY_MILLI:			// delay arg_int * 1 milli second
-        SYSTEM_DelayMs(arg_int);
+        SYSTICK_DelayUs(arg_int * 10);
         break;
     case U8X8_MSG_GPIO_DC:				// DC (data/cmd, A0, register select) pin: Output level in arg_int
         if(arg_int) {
@@ -36,6 +37,7 @@ uint8_t u8x8_gpio_and_delay_cb(__attribute__((unused)) u8x8_t* u8g2, uint8_t msg
 
 uint8_t u8x8_hw_spi_cb(u8x8_t* u8g2, uint8_t msg, uint8_t arg_int, void* arg_ptr) {
     uint8_t* data;
+    
     switch (msg) {
     case U8X8_MSG_BYTE_SEND: // write data to display
         data = (uint8_t *)arg_ptr;
