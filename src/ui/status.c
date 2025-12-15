@@ -278,14 +278,6 @@ void UI_DisplayStatus()
     if (BatTxt) {
         x2 -= (7 * strlen(str));
         UI_PrintStringSmallBufferNormal(str, line + x2);
-        /*
-        uint8_t shift = (strlen(str) < 5) ? 92 : 88;
-        GUI_DisplaySmallest(str, shift, 1, true, true);
-
-        for (uint8_t i = shift - 2; i < 110; i++) {
-            gStatusLine[i] ^= 0x7F; // invert
-        }
-        */
     }
 
     // **************

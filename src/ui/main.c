@@ -691,12 +691,12 @@ void UI_DisplayMain(void)
 
     if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfoA]))
     {   // channel mode
-        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 0, 0, 22, true, false, false, "M-%03u", gEeprom.ScreenChannel[vfoA] + 1);
+        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 22, true, false, false, "M-%03u", gEeprom.ScreenChannel[vfoA] + 1);
     }
     else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfoA]))
     {   // frequency mode
         // show the frequency band number
-        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 0, 0, 22, true, false, false, "F-%03u", 1 + gEeprom.ScreenChannel[vfoA] - FREQ_CHANNEL_FIRST);
+        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 22, true, false, false, "F-%03u", 1 + gEeprom.ScreenChannel[vfoA] - FREQ_CHANNEL_FIRST);
     }
     
     UI_SetFont(FONT_5_TR);
@@ -778,7 +778,7 @@ void UI_DisplayMain(void)
     UI_SetBlackColor();
     UI_DrawBox(0, vfoBY, 128, 7);
     
-    UI_SetFont(FONT_5_TR);
+    UI_SetFont(FONT_8_TR);
     SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[vfoB]);
     if (String[0] == 0)
     {   // no channel name, show the channel number instead
@@ -800,7 +800,9 @@ void UI_DisplayMain(void)
     else
     {
         currentPowerB--;
-    }
+    }    
+
+    UI_SetFont(FONT_5_TR);
     const char* powerB = UI_GetStrValue(UI_POWER_STR, currentPowerB);
     UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 127, vfoBY + 6, false, false, false, "%.*s %.*s %.*s", UI_StringLengthNL(gModulationStr[modB]), gModulationStr[modB], UI_StringLengthNL(bandwidthB), bandwidthB, UI_StringLengthNL(powerB), powerB);
 
@@ -810,6 +812,7 @@ void UI_DisplayMain(void)
     {
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, vfoBY + 15, true, true, false, UI_RX_STR);
     } else {
+        UI_SetFont(FONT_5_TR);
         // not receiving on VFO2
         if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfoB]))
         {   // channel mode
