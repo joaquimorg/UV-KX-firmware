@@ -72,7 +72,6 @@
 #include "ui/inputbox.h"
 #include "ui/main.h"
 #include "ui/menu.h"
-#include "ui/status.h"
 #include "ui/ui.h"
 #include "ui/gui.h"
 
@@ -1393,10 +1392,6 @@ void APP_TimeSlice10ms(void)
         gUpdateDisplay = false;
         GUI_DisplayScreen();
     }
-
-    /*if (gUpdateStatusCurrent) {
-        UI_DisplayStatus();
-    }*/
 
     #ifdef ENABLE_FEAT_F4HWN_SCREENSHOT
     if (gUpdateDisplayCurrent || gUpdateStatusCurrent) {

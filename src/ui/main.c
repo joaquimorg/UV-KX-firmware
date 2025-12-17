@@ -785,6 +785,7 @@ void UI_DisplayMain(void)
     }
     UI_DrawFrequencySmall(rxVFO2, displayFreqVFO2, 126, vfoBY + 17);
 
+    UI_SetFont(FONT_5_TR);
     // Status info
     if (gChargingWithTypeC) 
     {
@@ -794,21 +795,44 @@ void UI_DisplayMain(void)
     {
         UI_DrawBatteryIcon(BATTERY_VoltsToPercent(gBatteryVoltageAverage), 114, 52);
     }
+    UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 128, 64, true, false, false, "%i%%", BATTERY_VoltsToPercent(gBatteryVoltageAverage));
 
-    UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, "A/B");
+    //
+
+    uint8_t dw = (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) + (gEeprom.CROSS_BAND_RX_TX != CROSS_BAND_OFF) * 2;
+
+    if(dw == 1 || dw == 3) { // DWR - dual watch
+        if(gDualWatchActive) {
+            UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, "A/B");            
+        }
+        else
+        {            
+            UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, vfoA == 0 ? "A" : "B");
+        }
+    }
+    else if(dw == 2) { // XB - crossband
+        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, "X");
+    }
+    else
+    {        
+        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, "M");
+    }    
 
     if (gCurrentFunction == FUNCTION_POWER_SAVE)
     {
         UI_DrawPs(78, 59, true);
     }
-
-    UI_SetFont(FONT_5_TR);
-    if (gWasFKeyPressed) {
-        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 97, 56, true, true, false, "F");
+    
+    // TODO : create icons for the following statuses
+    if (gEeprom.KEY_LOCK) {
+        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 97, 56, true, true, false, "L");        
     }
-
-    //UI_SetFont(FONT_5_TR);
-    UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 128, 64, true, false, false, "%i%%", BATTERY_VoltsToPercent(gBatteryVoltageAverage));
+    else if (gWasFKeyPressed) {
+        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 97, 56, true, true, false, "F");        
+    }    
+    else if (gMute) {
+        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 97, 56, true, true, false, "M");
+    }
 
     DisplayRSSIBar(false);
 
