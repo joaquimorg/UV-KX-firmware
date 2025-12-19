@@ -685,8 +685,7 @@ void UI_DisplayMain(void)
     
     if ( pConfigRX->CodeType == CODE_TYPE_OFF && pConfigTX->CodeType == CODE_TYPE_OFF ) {        
         UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, false, false, "%d.%02uK", vfoInfoA->StepFrequency / 100, vfoInfoA->StepFrequency % 100);
-    } else {
-
+    } else {        
         // RX code
         if ( pConfigRX->CodeType == CODE_TYPE_CONTINUOUS_TONE )
         {
@@ -806,6 +805,9 @@ void UI_DisplayMain(void)
     }
     UI_DrawFrequencySmall(rxVFO2, displayFreqVFO2, 126, vfoBY + 17);
 
+
+    // draw bottom status area
+
     UI_SetFont(FONT_5_TR);
     // Status info
     if (gChargingWithTypeC) 
@@ -828,7 +830,7 @@ void UI_DisplayMain(void)
         }
         else
         {            
-            UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, vfoA == 0 ? "A" : "B");
+            UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, gLastRxVfo == vfoA ? "A" : "B");
         }
     }
     else if(dw == 2) { // XB - crossband
