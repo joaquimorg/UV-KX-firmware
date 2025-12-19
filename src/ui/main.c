@@ -859,6 +859,26 @@ void UI_DisplayMain(void)
 
     DisplayRSSIBar(false);
 
+    enum VfoState_t stateA = VfoState[0];
+    enum VfoState_t stateB = VfoState[1];
+
+
+    // TODO : use UI_SetInfoMessage
+    if (stateA != VFO_STATE_NORMAL || stateB != VFO_STATE_NORMAL)
+    {
+        UI_DrawPopupWindow(20, 20, 88, 28, "Info");
+        UI_SetFont(FONT_8B_TR);
+        if (stateA != VFO_STATE_NORMAL)
+        {
+            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 36, true, false, false, "VFO A");            
+            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 44, true, false, false, VfoStateStr[stateA]);
+        } else if (stateB != VFO_STATE_NORMAL)
+        {
+            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 36, true, false, false, "VFO B");
+            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 44, true, false, false, VfoStateStr[stateB]);   
+        }        
+    }
+
     if(gLowBattery && !gLowBatteryConfirmed) {
         UI_SetInfoMessage(UI_INFO_LOW_BATTERY);        
     }
