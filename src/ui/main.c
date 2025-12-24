@@ -25,14 +25,14 @@
 #include "bitmaps.h"
 #include "board.h"
 #include "driver/bk4819.h"
-#include "driver/st7565.h"
+//#include "driver/st7565.h"
 #include "printf.h"
 #include "functions.h"
 #include "helper/battery.h"
 #include "misc.h"
 #include "radio.h"
 #include "settings.h"
-#include "ui/helper.h"
+//#include "ui/helper.h"
 #include "ui/inputbox.h"
 #include "ui/main.h"
 #include "ui/ui.h"
@@ -111,7 +111,7 @@ static void DrawSmallAntennaAndBars(uint8_t *p, unsigned int level)
 }
 #if defined ENABLE_AUDIO_BAR || defined ENABLE_RSSI_BAR
 
-static void DrawLevelBar(uint8_t xpos, uint8_t line, uint8_t level, uint8_t bars)
+/*static void DrawLevelBar(uint8_t xpos, uint8_t line, uint8_t level, uint8_t bars)
 {
     uint8_t *p_line = gFrameBuffer[line];
     level = MIN(level, bars);
@@ -149,7 +149,7 @@ static void DrawLevelBar(uint8_t xpos, uint8_t line, uint8_t level, uint8_t bars
         }
 #endif
     }
-}
+}*/
 #endif
 
 #ifdef ENABLE_AUDIO_BAR
@@ -285,188 +285,6 @@ void DisplayRSSIBar(const bool now)
     }
 }
 
-void DisplayRSSIBar_old(const bool now)
-{
-#if defined(ENABLE_RSSI_BAR)
-
-    const unsigned int txt_width    = 7 * 8;                 // 8 text chars
-    const unsigned int bar_x        = 2 + txt_width + 4;     // X coord of bar graph
-
-#ifdef ENABLE_FEAT_F4HWN
-    /*
-    const char empty[] = {
-        0b00000000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-    */
-
-    unsigned int line;
-    if (isMainOnly())
-    {
-        line = 5;
-    }
-    else
-    {
-        line = 3;
-    }
-
-    //char rx[4];
-    //sprintf(String, "%d", RxBlink);
-    //UI_PrintStringSmallBold(String, 80, 0, RxLine);
-
-    if(RxLine >= 0 && center_line != CENTER_LINE_IN_USE)
-    {
-        if (RxBlink == 0 || RxBlink == 1) {
-            UI_PrintStringSmallBold("RX", 8, 0, RxLine);
-            if (RxBlink == 1) RxBlink = 2;
-        } else {
-            for (uint8_t i = 8; i < 24; i++)
-            {
-                gFrameBuffer[RxLine][i] = 0x00;
-            }
-            RxBlink = 1;
-        }
-        ST7565_BlitLine(RxLine);
-    }
-#else
-    const unsigned int line = 3;
-#endif
-    uint8_t           *p_line        = gFrameBuffer[line];
-    char               str[16];
-
-#ifndef ENABLE_FEAT_F4HWN
-    const char plus[] = {
-        0b00011000,
-        0b00011000,
-        0b01111110,
-        0b01111110,
-        0b01111110,
-        0b00011000,
-        0b00011000,
-    };
-#endif
-
-    if ((gEeprom.KEY_LOCK && gKeypadLocked > 0) || center_line != CENTER_LINE_RSSI)
-        return;     // display is in use
-
-    if (gCurrentFunction == FUNCTION_TRANSMIT ||
-        gScreenToDisplay != DISPLAY_MAIN
-#ifdef ENABLE_DTMF_CALLING
-        || gDTMF_CallState != DTMF_CALL_STATE_NONE
-#endif
-        )
-        return;     // display is in use
-
-    if (now)
-        memset(p_line, 0, LCD_WIDTH);
-
-#ifdef ENABLE_FEAT_F4HWN
-    int16_t rssi_dBm =
-        BK4819_GetRSSI_dBm()
-#ifdef ENABLE_AM_FIX
-        + ((gSetting_AM_fix && gRxVfo->Modulation == MODULATION_AM) ? AM_fix_get_gain_diff() : 0)
-#endif
-        + dBmCorrTable[gRxVfo->Band];
-
-    rssi_dBm = -rssi_dBm;
-
-    if(rssi_dBm > 141) rssi_dBm = 141;
-    if(rssi_dBm < 53) rssi_dBm = 53;
-
-    uint8_t s_level = 0;
-    uint8_t overS9dBm = 0;
-    uint8_t overS9Bars = 0;
-
-    if(rssi_dBm >= 93) {
-        s_level = map(rssi_dBm, 141, 93, 1, 9);
-    }
-    else {
-        s_level = 9;
-        overS9dBm = map(rssi_dBm, 93, 53, 0, 40);
-        overS9Bars = map(overS9dBm, 0, 40, 0, 4);
-    }
-#else
-    const int16_t s0_dBm   = -gEeprom.S0_LEVEL;                  // S0 .. base level
-    const int16_t rssi_dBm =
-        BK4819_GetRSSI_dBm()
-#ifdef ENABLE_AM_FIX
-        + ((gSetting_AM_fix && gRxVfo->Modulation == MODULATION_AM) ? AM_fix_get_gain_diff() : 0)
-#endif
-        + dBmCorrTable[gRxVfo->Band];
-
-    int s0_9 = gEeprom.S0_LEVEL - gEeprom.S9_LEVEL;
-    const uint8_t s_level = MIN(MAX((int32_t)(rssi_dBm - s0_dBm)*100 / (s0_9*100/9), 0), 9); // S0 - S9
-    uint8_t overS9dBm = MIN(MAX(rssi_dBm + gEeprom.S9_LEVEL, 0), 99);
-    uint8_t overS9Bars = MIN(overS9dBm/10, 4);
-#endif
-
-#ifdef ENABLE_FEAT_F4HWN
-    if (gSetting_set_gui)
-    {
-        sprintf(str, "%3d", -rssi_dBm);
-        UI_PrintStringSmallNormal(str, LCD_WIDTH + 8, 0, line - 1);
-    }
-    else
-    {
-        sprintf(str, "% 4d %s", -rssi_dBm, "dBm");
-        if(isMainOnly())
-            GUI_DisplaySmallest(str, 2, 41, false, true);
-        else
-            GUI_DisplaySmallest(str, 2, 25, false, true);
-    }
-
-    if(overS9Bars == 0) {
-        sprintf(str, "S%d", s_level);
-    }
-    else {
-        sprintf(str, "+%02d", overS9dBm);
-    }
-
-    UI_PrintStringSmallNormal(str, LCD_WIDTH + 38, 0, line - 1);
-#else
-    if(overS9Bars == 0) {
-        sprintf(str, "% 4d S%d", -rssi_dBm, s_level);
-    }
-    else {
-        sprintf(str, "% 4d  %2d", -rssi_dBm, overS9dBm);
-        memcpy(p_line + 2 + 7*5, &plus, ARRAY_SIZE(plus));
-    }
-
-    UI_PrintStringSmallNormal(str, 2, 0, line);
-#endif
-    DrawLevelBar(bar_x, line, s_level + overS9Bars, 13);
-    if (now)
-        ST7565_BlitLine(line);
-#else
-    int16_t rssi = BK4819_GetRSSI();
-    uint8_t Level;
-
-    if (rssi >= gEEPROM_RSSI_CALIB[gRxVfo->Band][3]) {
-        Level = 6;
-    } else if (rssi >= gEEPROM_RSSI_CALIB[gRxVfo->Band][2]) {
-        Level = 4;
-    } else if (rssi >= gEEPROM_RSSI_CALIB[gRxVfo->Band][1]) {
-        Level = 2;
-    } else if (rssi >= gEEPROM_RSSI_CALIB[gRxVfo->Band][0]) {
-        Level = 1;
-    } else {
-        Level = 0;
-    }
-
-    uint8_t *pLine = (gEeprom.RX_VFO == 0)? gFrameBuffer[2] : gFrameBuffer[6];
-    if (now)
-        memset(pLine, 0, 23);
-    DrawSmallAntennaAndBars(pLine, Level);
-    if (now)
-        UI_UpdateDisplay();
-#endif
-
-}
 
 #ifdef ENABLE_AGC_SHOW_DATA
 void UI_MAIN_PrintAGC(bool now)
@@ -501,9 +319,9 @@ void UI_MAIN_PrintAGC(bool now)
     int16_t agcGain = lnaShortTab[agcGainReg.lnaS] + lnaTab[agcGainReg.lna] + mixerTab[agcGainReg.mixer] + pgaTab[agcGainReg.pga];
 
     sprintf(buf, "%d%2d %2d %2d %3d", reg7e.agcEnab, reg7e.gainIdx, -agcGain, reg7e.agcSigStrength, BK4819_GetRSSI());
-    UI_PrintStringSmallNormal(buf, 2, 0, 3);
-    if(now)
-        ST7565_BlitLine(3);
+    //UI_PrintStringSmallNormal(buf, 2, 0, 3);
+    //if(now)
+        //ST7565_BlitLine(3);
 }
 #endif
 

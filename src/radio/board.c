@@ -495,7 +495,7 @@ void BOARD_Init(void)
     BOARD_GPIO_Init();
     BACKLIGHT_InitHardware();
     BOARD_ADC_Init();
-    //ST7565_Init();
+    ////ST7565_Init();
     U8G2_HAL_Init();
     UI_Init(&u8g2);
 #ifdef ENABLE_FMRADIO

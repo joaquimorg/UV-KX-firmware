@@ -54,7 +54,7 @@
 #include "driver/bk4819.h"
 #include "driver/gpio.h"
 #include "driver/keyboard.h"
-#include "driver/st7565.h"
+////#include "driver/st7565.h"
 #include "driver/system.h"
 #include "dtmf.h"
 #include "printf.h"
@@ -974,7 +974,7 @@ void APP_Update(void)
                 //  gPttWasReleased = true;
             }
             #if defined(ENABLE_FEAT_F4HWN_CTR) || defined(ENABLE_FEAT_F4HWN_INV)
-            ST7565_ContrastAndInv();
+            //ST7565_ContrastAndInv();
             #endif
         }
 #endif
@@ -1212,7 +1212,7 @@ static void CheckKeys(void)
                     gPttWasReleased = true;
                 gPttOnePushCounter = 0;
                 #if defined(ENABLE_FEAT_F4HWN_CTR) || defined(ENABLE_FEAT_F4HWN_INV)
-                ST7565_ContrastAndInv();
+                //ST7565_ContrastAndInv();
                 #endif
             }
         }
@@ -1234,7 +1234,7 @@ static void CheckKeys(void)
                     if (gKeyReading1 != KEY_INVALID)
                         gPttWasReleased = true;
                     #if defined(ENABLE_FEAT_F4HWN_CTR) || defined(ENABLE_FEAT_F4HWN_INV)
-                    ST7565_ContrastAndInv();
+                    //ST7565_ContrastAndInv();
                     #endif
                 }
             }
@@ -1558,10 +1558,10 @@ void APP_TimeSlice500ms(void)
 
     if (gDTMF_RX_live_timeout > 0)
     {
-        #ifdef ENABLE_RSSI_BAR
+        /*#ifdef ENABLE_RSSI_BAR
             if (center_line == CENTER_LINE_DTMF_DEC ||
                 center_line == CENTER_LINE_NONE)  // wait till the center line is free for us to use before timing out
-        #endif
+        #endif*/
         {
             if (--gDTMF_RX_live_timeout == 0)
             {
@@ -1606,8 +1606,8 @@ void APP_TimeSlice500ms(void)
 
 #ifdef ENABLE_FEAT_F4HWN_SLEEP
     if (gSleepModeCountdown_500ms == gSetting_set_off * 120 && gWakeUp) {
-        //ST7565_Init();
-        ST7565_FixInterfGlitch();
+        ////ST7565_Init();
+        //ST7565_FixInterfGlitch();
         BK4819_ToggleGpioOut(BK4819_GPIO5_PIN1_RED, false);
         gPowerSave_10ms = gEeprom.BATTERY_SAVE * 10;
         gWakeUp = false;
@@ -1624,7 +1624,7 @@ void APP_TimeSlice500ms(void)
             gPowerSave_10ms = 1;
             gWakeUp = true;
             PWM_PLUS0_CH0_COMP = 0;
-            ST7565_ShutDown();
+            //ST7565_ShutDown();
         }
         else if(gSleepModeCountdown_500ms != 0 && gSleepModeCountdown_500ms < 21 && gSetting_set_off != 0)
         {

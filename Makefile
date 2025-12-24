@@ -3,8 +3,8 @@
 # 1 = enable
 
 ENABLE_REMOTE_CONTROL			?= 0
-ENABLE_UART_DEBUG			  	?= 1
-
+ENABLE_UART_DEBUG			  	?= 0
+ENABLE_TXRX_MSG                 ?= 0
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -20,7 +20,7 @@ ENABLE_TX1750                   ?= 1
 ENABLE_DTMF_CALLING             ?= 0
 
 # ---- CUSTOM MODS ----
-ENABLE_SPECTRUM                 ?= 0
+ENABLE_SPECTRUM                 ?= 1
 ENABLE_KEEP_MEM_NAME            ?= 1
 ENABLE_WIDE_RX                  ?= 1
 ENABLE_TX_WHEN_AM               ?= 0
@@ -28,12 +28,11 @@ ENABLE_F_CAL_MENU               ?= 0
 ENABLE_CTCSS_TAIL_PHASE_SHIFT   ?= 0
 ENABLE_BOOT_BEEPS               ?= 0
 ENABLE_SHOW_CHARGE_LEVEL        ?= 0
-ENABLE_REVERSE_BAT_SYMBOL       ?= 0
 ENABLE_NO_CODE_SCAN_TIMEOUT     ?= 1
 ENABLE_AM_FIX                   ?= 1
 ENABLE_SQUELCH_MORE_SENSITIVE   ?= 1
 ENABLE_FASTER_CHANNEL_SCAN      ?= 1
-ENABLE_RSSI_BAR                 ?= 0
+ENABLE_RSSI_BAR                 ?= 1
 ENABLE_AUDIO_BAR                ?= 0
 ENABLE_COPY_CHAN_TO_VFO         ?= 1
 ENABLE_REDUCE_LOW_MID_TX_POWER  ?= 0
@@ -49,12 +48,10 @@ ENABLE_EXTRA_UART_CMD           ?= 0
 # ---- F4HWN MODS ----
 
 ENABLE_FEAT_F4HWN               ?= 1
-ENABLE_FEAT_F4HWN_SCREENSHOT    ?= 0
 ENABLE_FEAT_F4HWN_SPECTRUM      ?= 1
 ENABLE_FEAT_F4HWN_RX_TX_TIMER   ?= 1
-ENABLE_FEAT_F4HWN_CHARGING_C    ?= 0
 ENABLE_FEAT_F4HWN_SLEEP         ?= 1
-ENABLE_FEAT_F4HWN_RESUME_STATE  ?= 1
+ENABLE_FEAT_F4HWN_RESUME_STATE  ?= 0
 ENABLE_FEAT_F4HWN_NARROWER      ?= 1
 ENABLE_FEAT_F4HWN_CTR           ?= 1
 ENABLE_FEAT_F4HWN_RESCUE_OPS    ?= 0
@@ -62,7 +59,7 @@ ENABLE_FEAT_F4HWN_VOL           ?= 0
 ENABLE_FEAT_F4HWN_RESET_CHANNEL ?= 0
 ENABLE_FEAT_F4HWN_PMR           ?= 0
 ENABLE_FEAT_F4HWN_GMRS_FRS_MURS	?= 0
-ENABLE_FEAT_F4HWN_CA            ?= 1
+ENABLE_FEAT_F4HWN_CA            ?= 0
 ENABLE_FEAT_F4HWN_DEBUG         ?= 0
 
 # ---- DEBUGGING ----
@@ -177,7 +174,7 @@ CCFLAGS += -flto=1
 CCFLAGS += -ftree-vectorize -funroll-loops
 CCFLAGS += -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas 
 #-Wunused-parameter -Wconversion
-CCFLAGS += -fno-math-errno -pipe -ffunction-sections -fdata-sections -ffast-math
+CCFLAGS += -fno-math-errno -pipe -ffunction-sections -fdata-sections -ffast-math -fno-strict-aliasing
 CCFLAGS += -fsingle-precision-constant -finline-functions-called-once
 CCFLAGS += -Os -g3 -fno-exceptions -fno-non-call-exceptions -fno-delete-null-pointer-checks
 CCFLAGS += -DARMCM0
@@ -218,6 +215,9 @@ ifeq ($(ENABLE_REMOTE_CONTROL),1)
 	CXXFLAGS += -DENABLE_REMOTE_CONTROL
 endif
 
+ifeq ($(ENABLE_TXRX_MSG),1)
+	CCFLAGS += -DENABLE_TXRX_MSG
+endif
 
 ifeq ($(ENABLE_SPECTRUM),1)
 	CCFLAGS += -DENABLE_SPECTRUM
@@ -335,17 +335,11 @@ endif
 ifeq ($(ENABLE_FEAT_F4HWN_GAME),1)
 	CCFLAGS  += -DENABLE_FEAT_F4HWN_GAME
 endif
-ifeq ($(ENABLE_FEAT_F4HWN_SCREENSHOT),1)
-	CCFLAGS  += -DENABLE_FEAT_F4HWN_SCREENSHOT
-endif
 ifeq ($(ENABLE_FEAT_F4HWN_SPECTRUM),1)
 	CCFLAGS  += -DENABLE_FEAT_F4HWN_SPECTRUM
 endif
 ifeq ($(ENABLE_FEAT_F4HWN_RX_TX_TIMER),1)
 	CCFLAGS  += -DENABLE_FEAT_F4HWN_RX_TX_TIMER
-endif
-ifeq ($(ENABLE_FEAT_F4HWN_CHARGING_C),1)
-	CCFLAGS  += -DENABLE_FEAT_F4HWN_CHARGING_C
 endif
 ifeq ($(ENABLE_FEAT_F4HWN_SLEEP),1)
 	CCFLAGS  += -DENABLE_FEAT_F4HWN_SLEEP

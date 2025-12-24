@@ -72,19 +72,19 @@ void UI_DisplayWelcome(void)
     memset(gStatusLine,  0, sizeof(gStatusLine));
 
 #if defined(ENABLE_FEAT_F4HWN_CTR) || defined(ENABLE_FEAT_F4HWN_INV)
-        ST7565_ContrastAndInv();
+        //ST7565_ContrastAndInv();
 #endif
     UI_ClearDisplay();
 
 #ifdef ENABLE_FEAT_F4HWN
-    ST7565_BlitStatusLine();
+    //ST7565_BlitStatusLine();
     UI_UpdateDisplay();
     
     if (gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_NONE || gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_SOUND) {
-        ST7565_FillScreen(0x00);
+        //ST7565_FillScreen(0x00);
 #else
     if (gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_NONE || gEeprom.POWER_ON_DISPLAY_MODE == POWER_ON_DISPLAY_MODE_FULL_SCREEN) {
-        ST7565_FillScreen(0xFF);
+        //ST7565_FillScreen(0xFF);
 #endif
     } else {
         memset(WelcomeString0, 0, sizeof(WelcomeString0));

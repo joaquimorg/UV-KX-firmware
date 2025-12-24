@@ -25,7 +25,7 @@
 
 #include "driver/backlight.h"
 #include "frequencies.h"
-#include "ui/helper.h"
+//#include "ui/helper.h"
 #include "ui/main.h"
 
 #ifdef ENABLE_FEAT_F4HWN_SCREENSHOT
@@ -219,21 +219,23 @@ static void SetRegMenuValue(uint8_t st, bool add)
 #ifndef ENABLE_FEAT_F4HWN
 static void PutPixel(uint8_t x, uint8_t y, bool fill)
 {
-    UI_DrawPixelBuffer(gFrameBuffer, x, y, fill);
+    //UI_DrawPixelBuffer(gFrameBuffer, x, y, fill);
 }
 static void PutPixelStatus(uint8_t x, uint8_t y, bool fill)
 {
-    UI_DrawPixelBuffer(&gStatusLine, x, y, fill);
+    //UI_DrawPixelBuffer(&gStatusLine, x, y, fill);
 }
 #endif
 
 static void DrawVLine(int sy, int ey, int nx, bool fill)
 {
+    (void)fill;
+    //
     for (int i = sy; i <= ey; i++)
     {
         if (i < 56 && nx < 128)
         {
-            PutPixel(nx, i, fill);
+            //PutPixel(nx, i, fill);
         }
     }
 }
@@ -1005,7 +1007,7 @@ static void DrawStatus()
 #else
     sprintf(String, "%d/%d", settings.dbMin, settings.dbMax);
 #endif
-    GUI_DisplaySmallest(String, 0, 1, true, true);
+    //GUI_DisplaySmallest(String, 0, 1, true, true);
 
     BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4],
                              &gBatteryCurrent);
@@ -1019,18 +1021,18 @@ static void DrawStatus()
     // sprintf(String, "%d %d", voltage, perc);
     // GUI_DisplaySmallest(String, 48, 1, true, true);
 
-    gStatusLine[116] = 0b00011100;
-    gStatusLine[117] = 0b00111110;
+    //gStatusLine[116] = 0b00011100;
+    //gStatusLine[117] = 0b00111110;
     for (int i = 118; i <= 126; i++)
     {
-        gStatusLine[i] = 0b00100010;
+        //gStatusLine[i] = 0b00100010;
     }
 
     for (unsigned i = 127; i >= 118; i--)
     {
         if (127 - i <= (perc + 5) * 9 / 100)
         {
-            gStatusLine[i] = 0b00111110;
+            //gStatusLine[i] = 0b00111110;
         }
     }
 }
@@ -1060,26 +1062,26 @@ static void ShowChannelName(uint32_t f)
             }
         }
         if (channelName[0] != 0) {
-            UI_PrintStringSmallBufferNormal(channelName, gStatusLine + 36);
+            //UI_PrintStringSmallBufferNormal(channelName, gStatusLine + 36);
         }
     }
     else
     {
-        memset(&gStatusLine[36], 0, 100 - 28);
+        //memset(&//gStatusLine[36], 0, 100 - 28);
     }
-    ST7565_BlitStatusLine();
+    //ST7565_BlitStatusLine();
 }
 #endif
 
 static void DrawF(uint32_t f)
 {
     sprintf(String, "%u.%05u", f / 100000, f % 100000);
-    UI_PrintStringSmallNormal(String, 8, 127, 0);
+    //UI_PrintStringSmallNormal(String, 8, 127, 0);
 
     sprintf(String, "%3s", gModulationStr[settings.modulationType]);
-    GUI_DisplaySmallest(String, 116, 1, false, true);
+    //GUI_DisplaySmallest(String, 116, 1, false, true);
     sprintf(String, "%4sk", bwOptions[settings.listenBw]);
-    GUI_DisplaySmallest(String, 108, 7, false, true);
+    //GUI_DisplaySmallest(String, 108, 7, false, true);
 
 #ifdef ENABLE_FEAT_F4HWN_SPECTRUM
     ShowChannelName(f);
@@ -1101,9 +1103,9 @@ static void DrawNums()
         {
             sprintf(String, "%ux", GetStepsCount());
         }
-        GUI_DisplaySmallest(String, 0, 1, false, true);
+        //GUI_DisplaySmallest(String, 0, 1, false, true);
         sprintf(String, "%u.%02uk", GetScanStep() / 100, GetScanStep() % 100);
-        GUI_DisplaySmallest(String, 0, 7, false, true);
+        //GUI_DisplaySmallest(String, 0, 7, false, true);
     }
 
     if (IsCenterMode())
@@ -1111,19 +1113,19 @@ static void DrawNums()
         sprintf(String, "%u.%05u \x7F%u.%02uk", currentFreq / 100000,
                 currentFreq % 100000, settings.frequencyChangeStep / 100,
                 settings.frequencyChangeStep % 100);
-        GUI_DisplaySmallest(String, 36, 49, false, true);
+        //GUI_DisplaySmallest(String, 36, 49, false, true);
     }
     else
     {
         sprintf(String, "%u.%05u", GetFStart() / 100000, GetFStart() % 100000);
-        GUI_DisplaySmallest(String, 0, 49, false, true);
+        //GUI_DisplaySmallest(String, 0, 49, false, true);
 
         sprintf(String, "\x7F%u.%02uk", settings.frequencyChangeStep / 100,
                 settings.frequencyChangeStep % 100);
-        GUI_DisplaySmallest(String, 48, 49, false, true);
+        //GUI_DisplaySmallest(String, 48, 49, false, true);
 
         sprintf(String, "%u.%05u", GetFEnd() / 100000, GetFEnd() % 100000);
-        GUI_DisplaySmallest(String, 93, 49, false, true);
+        //GUI_DisplaySmallest(String, 93, 49, false, true);
     }
 }
 
@@ -1134,7 +1136,7 @@ static void DrawRssiTriggerLevel()
     uint8_t y = Rssi2Y(settings.rssiTriggerLevel);
     for (uint8_t x = 0; x < 128; x += 2)
     {
-        PutPixel(x, y, true);
+        //PutPixel(x, y, true);
     }
 }
 
@@ -1151,22 +1153,22 @@ static void DrawTicks()
         (f % 50000) < step && (barValue |= 0b00000100);
         (f % 100000) < step && (barValue |= 0b00011000);
 
-        gFrameBuffer[5][i] |= barValue;
+        //gFrameBuffer[5][i] |= barValue;
     }
 
     // center
     if (IsCenterMode())
     {
-        memset(gFrameBuffer[5] + 62, 0x80, 5);
-        gFrameBuffer[5][64] = 0xff;
+        //memset(gFrameBuffer[5] + 62, 0x80, 5);
+        //gFrameBuffer[5][64] = 0xff;
     }
     else
     {
-        memset(gFrameBuffer[5] + 1, 0x80, 3);
-        memset(gFrameBuffer[5] + 124, 0x80, 3);
+        //memset(gFrameBuffer[5] + 1, 0x80, 3);
+        //memset(gFrameBuffer[5] + 124, 0x80, 3);
 
-        gFrameBuffer[5][0] = 0xff;
-        gFrameBuffer[5][127] = 0xff;
+        //gFrameBuffer[5][0] = 0xff;
+        //gFrameBuffer[5][127] = 0xff;
     }
 }
 
@@ -1177,7 +1179,7 @@ static void DrawArrow(uint8_t x)
         signed v = x + i;
         if (!(v & 128))
         {
-            gFrameBuffer[5][v] |= (0b01111000 << my_abs(i)) & 0b01111000;
+            //gFrameBuffer[5][v] |= (0b01111000 << my_abs(i)) & 0b01111000;
         }
     }
 }
@@ -1398,13 +1400,13 @@ void OnKeyDownStill(KEY_Code_t key)
     }
 }
 
-static void RenderFreqInput() { UI_PrintString(freqInputString, 2, 127, 0, 8); }
+static void RenderFreqInput() { /*UI_PrintString(freqInputString, 2, 127, 0, 8);*/ }
 
 static void RenderStatus()
 {
-    memset(gStatusLine, 0, sizeof(gStatusLine));
+    //memset(gStatusLine, 0, sizeof(gStatusLine));
     DrawStatus();
-    ST7565_BlitStatusLine();
+    //ST7565_BlitStatusLine();
 }
 
 static void RenderSpectrum()
@@ -1423,16 +1425,16 @@ static void RenderStill()
 
     const uint8_t METER_PAD_LEFT = 3;
 
-    memset(&gFrameBuffer[2][METER_PAD_LEFT], 0b00010000, 121);
+    //memset(&gFrameBuffer[2][METER_PAD_LEFT], 0b00010000, 121);
 
     for (int i = 0; i < 121; i += 5)
     {
-        gFrameBuffer[2][i + METER_PAD_LEFT] = 0b00110000;
+        //gFrameBuffer[2][i + METER_PAD_LEFT] = 0b00110000;
     }
 
     for (int i = 0; i < 121; i += 10)
     {
-        gFrameBuffer[2][i + METER_PAD_LEFT] = 0b01110000;
+        //gFrameBuffer[2][i + METER_PAD_LEFT] = 0b01110000;
     }
 
     uint8_t x = Rssi2PX(scanInfo.rssi, 0, 121);
@@ -1440,26 +1442,26 @@ static void RenderStill()
     {
         if (i % 5)
         {
-            gFrameBuffer[2][i + METER_PAD_LEFT] |= 0b00000111;
+            //gFrameBuffer[2][i + METER_PAD_LEFT] |= 0b00000111;
         }
     }
 
     int dbm = Rssi2DBm(scanInfo.rssi);
     uint8_t s = DBm2S(dbm);
     sprintf(String, "S: %u", s);
-    GUI_DisplaySmallest(String, 4, 25, false, true);
+    //GUI_DisplaySmallest(String, 4, 25, false, true);
     sprintf(String, "%d dBm", dbm);
-    GUI_DisplaySmallest(String, 28, 25, false, true);
+    //GUI_DisplaySmallest(String, 28, 25, false, true);
 
     if (!monitorMode)
     {
         uint8_t x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
-        gFrameBuffer[2][METER_PAD_LEFT + x] = 0b11111111;
+        //gFrameBuffer[2][METER_PAD_LEFT + x] = 0b11111111;
     }
 
     const uint8_t PAD_LEFT = 4;
     const uint8_t CELL_WIDTH = 30;
-    uint8_t offset = PAD_LEFT;
+    //uint8_t offset = PAD_LEFT;
     uint8_t row = 4;
 
     for (int i = 0, idx = 1; idx <= 4; ++i, ++idx)
@@ -1469,18 +1471,18 @@ static void RenderStill()
             row += 2;
             i = 0;
         }
-        offset = PAD_LEFT + i * CELL_WIDTH;
+        //offset = PAD_LEFT + i * CELL_WIDTH;
         if (menuState == idx)
         {
             for (int j = 0; j < CELL_WIDTH; ++j)
             {
-                gFrameBuffer[row][j + offset] = 0xFF;
-                gFrameBuffer[row + 1][j + offset] = 0xFF;
+                //gFrameBuffer[row][j + offset] = 0xFF;
+                //gFrameBuffer[row + 1][j + offset] = 0xFF;
             }
         }
         sprintf(String, "%s", registerSpecs[idx].name);
-        GUI_DisplaySmallest(String, offset + 2, row * 8 + 2, false,
-                            menuState != idx);
+        //GUI_DisplaySmallest(String, offset + 2, row * 8 + 2, false,
+        //                    menuState != idx);
 
 #ifdef ENABLE_FEAT_F4HWN_SPECTRUM
         if(idx == 1)
@@ -1502,8 +1504,8 @@ static void RenderStill()
 #else
         sprintf(String, "%u", GetRegMenuValue(idx));
 #endif
-        GUI_DisplaySmallest(String, offset + 2, (row + 1) * 8 + 1, false,
-                            menuState != idx);
+        //GUI_DisplaySmallest(String, offset + 2, (row + 1) * 8 + 1, false,
+        //                    menuState != idx);
     }
 }
 

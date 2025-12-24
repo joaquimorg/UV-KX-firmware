@@ -31,10 +31,6 @@
 #include "app/spectrum.h"
 #endif
 
-#ifdef ENABLE_FEAT_F4HWN_GAME
-#include "app/breakout.h"
-#endif
-
 #include "audio.h"
 #include "board.h"
 #include "driver/bk4819.h"

@@ -26,7 +26,7 @@
 #include "driver/backlight.h"
 #include "driver/bk4819.h"
 #include "driver/eeprom.h"
-#include "driver/st7565.h"
+//#include "driver/st7565.h"
 #include "printf.h"
 #include "frequencies.h"
 #include "helper/battery.h"
@@ -64,9 +64,9 @@ const t_menu_item MenuList[] =
         {"SC ADD1",     MENU_S_ADD1        },
         {"SC ADD2",     MENU_S_ADD2        },
         {"SC ADD3",     MENU_S_ADD3        },
-        {"CH SAVE",     MENU_MEM_CH        }, // was "MEM-CH"
-        {"CH DELETE",   MENU_DEL_CH        }, // was "DEL-CH"
-        {"CH NAME",     MENU_MEM_NAME      },
+        //{"CH SAVE",     MENU_MEM_CH        }, // was "MEM-CH"
+        //{"CH DELETE",   MENU_DEL_CH        }, // was "DEL-CH"
+        //{"CH NAME",     MENU_MEM_NAME      },
 
         {"S LIST",      MENU_S_LIST        },
         {"S LIST1",     MENU_SLIST1        },
@@ -450,6 +450,27 @@ const uint8_t gSubMenu_SIDEFUNCTIONS_size = ARRAY_SIZE(gSubMenu_SIDEFUNCTIONS);
 bool    gIsInSubMenu;
 uint8_t gMenuCursor;
 
+void UI_GenerateChannelStringEx(char *pString, const bool bShowPrefix, const uint8_t ChannelNumber)
+{
+    if (gInputBoxIndex > 0) {
+        for (unsigned int i = 0; i < 3; i++) {
+            pString[i] = (gInputBox[i] == 10) ? '-' : gInputBox[i] + '0';
+        }
+
+        pString[3] = 0;
+        return;
+    }
+
+    if (bShowPrefix) {
+        // BUG here? Prefixed NULLs are allowed
+        sprintf(pString, "CH-%03u", ChannelNumber + 1);
+    } else if (ChannelNumber == 0xFF) {
+        strcpy(pString, "NULL");
+    } else {
+        sprintf(pString, "%03u", ChannelNumber + 1);
+    }
+}
+
 int UI_MENU_GetCurrentMenuId() {
     if (gMenuCursor < ARRAY_SIZE(MenuList))
         return MenuList[gMenuCursor].menu_id;
@@ -528,29 +549,31 @@ static void UI_MENU_DrawScanListPopup(void)
     UI_SetFont(FONT_8B_TR);
     if (selection < 0) {
         snprintf(line, sizeof(line), "NULL");
-    } else {
+    }
+    else {
         UI_GenerateChannelStringEx(line, true, selection);
     }
-    UI_DrawString(UI_TEXT_ALIGN_LEFT, text_x1, text_x2, popup_y + 14, false, false, false, line);
+    UI_DrawString(UI_TEXT_ALIGN_CENTER, text_x1, text_x2, popup_y + 14, true, false, false, line);
 
     UI_SetFont(FONT_8_TR);
     if (selection < 0) {
         snprintf(line, sizeof(line), "--");
-    } else {
+    }
+    else {
         SETTINGS_FetchChannelName(line, selection);
         if (line[0] == '\0') {
             snprintf(line, sizeof(line), "--");
         }
     }
-    UI_DrawString(UI_TEXT_ALIGN_LEFT, text_x1, text_x2, (uint8_t)(popup_y + 14 + line_h), false, false, false, line);
+    UI_DrawString(UI_TEXT_ALIGN_CENTER, text_x1, text_x2, (uint8_t)(popup_y + 14 + line_h), true, false, false, line);
 
     if (selection >= 0 && gEeprom.SCAN_LIST_ENABLED[list_index]) {
         for (uint8_t pri = 1; pri <= 2; ++pri) {
             const uint8_t channel = (pri == 1) ? gEeprom.SCANLIST_PRIORITY_CH1[list_index] : gEeprom.SCANLIST_PRIORITY_CH2[list_index];
             if (IS_MR_CHANNEL(channel)) {
                 snprintf(line, sizeof(line), "PRI%u:%u", pri, (unsigned int)channel + 1U);
-                UI_DrawString(UI_TEXT_ALIGN_LEFT, text_x1, text_x2,
-                              (uint8_t)(popup_y + 14 + (line_h * (pri + 1))), false, false, false, line);
+                UI_DrawString(UI_TEXT_ALIGN_CENTER, text_x1, text_x2,
+                    (uint8_t)(popup_y + 14 + (line_h * (pri + 1))), true, false, false, line);
             }
         }
     }
@@ -688,9 +711,9 @@ typedef enum {
 } UI_MENU_ListMode;
 
 static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t max,
-                                     int32_t base_offset, uint32_t step,
-                                     const char* first_item, const char* last_item,
-                                     const char* prefix, const char* suffix)
+    int32_t base_offset, uint32_t step,
+    const char* first_item, const char* last_item,
+    const char* prefix, const char* suffix)
 {
     size_t out = 0;
 
@@ -711,13 +734,14 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
     for (int32_t value = min; value <= max; ++value) {
         const char* item_text = NULL;
         const bool allow_item_text = (mode == MENU_LIST_NUMERIC ||
-                                      mode == MENU_LIST_TIME_MMSS ||
-                                      mode == MENU_LIST_TIME_HM);
+            mode == MENU_LIST_TIME_MMSS ||
+            mode == MENU_LIST_TIME_HM);
 
         if (allow_item_text) {
             if (value == min && first_item != NULL) {
                 item_text = first_item;
-            } else if (value == max && last_item != NULL) {
+            }
+            else if (value == max && last_item != NULL) {
                 item_text = last_item;
             }
         }
@@ -725,11 +749,12 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
         int written;
         if (item_text != NULL) {
             written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%s", item_text);
-        } else {
+        }
+        else {
             switch (mode) {
             case MENU_LIST_NUMERIC:
                 written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%s%ld%s",
-                                   prefix, (long)value, suffix);
+                    prefix, (long)value, suffix);
                 break;
             case MENU_LIST_TIME_MMSS:
             {
@@ -737,7 +762,7 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
                 const uint32_t minutes = seconds / 60U;
                 const uint32_t secs = seconds % 60U;
                 written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%02um:%02us",
-                                   (unsigned int)minutes, (unsigned int)secs);
+                    (unsigned int)minutes, (unsigned int)secs);
                 break;
             }
             case MENU_LIST_TIME_HM:
@@ -746,31 +771,33 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
                 const uint32_t hours = total_minutes / 60U;
                 const uint32_t minutes = total_minutes % 60U;
                 written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%uh:%02um",
-                                   (unsigned int)hours, (unsigned int)minutes);
+                    (unsigned int)hours, (unsigned int)minutes);
                 break;
             }
             case MENU_LIST_MIC_DB:
             {
                 const uint8_t mic = gMicGain_dB2[value];
                 written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "+%u.%01udB",
-                                   mic / 2U, mic % 2U);
+                    mic / 2U, mic % 2U);
                 break;
             }
             case MENU_LIST_SCAN_REV:
                 if (value == 0) {
                     written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "STOP");
-                } else if (value < 81) {
+                }
+                else if (value < 81) {
                     const uint32_t ms = (uint32_t)value * 250U;
                     const uint32_t seconds = ms / 1000U;
                     const uint32_t millis = ms % 1000U;
                     written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "CAR %02us:%03ums",
-                                       (unsigned int)seconds, (unsigned int)millis);
-                } else {
+                        (unsigned int)seconds, (unsigned int)millis);
+                }
+                else {
                     const uint32_t seconds = (uint32_t)(value - 80) * 5U;
                     const uint32_t minutes = seconds / 60U;
                     const uint32_t secs = seconds % 60U;
                     written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "OUT %02um:%02us",
-                                       (unsigned int)minutes, (unsigned int)secs);
+                        (unsigned int)minutes, (unsigned int)secs);
                 }
                 break;
             case MENU_LIST_DCS:
@@ -778,13 +805,16 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
                 const uint32_t count = ARRAY_SIZE(DCS_Options);
                 if (value == 0) {
                     written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%s", gSubMenu_OFF_ON[0]);
-                } else if ((uint32_t)value <= count) {
+                }
+                else if ((uint32_t)value <= count) {
                     written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "D%03oN",
-                                       DCS_Options[value - 1]);
-                } else if ((uint32_t)(value - (int32_t)count) <= count) {
+                        DCS_Options[value - 1]);
+                }
+                else if ((uint32_t)(value - (int32_t)count) <= count) {
                     written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "D%03oI",
-                                       DCS_Options[value - 1 - (int32_t)count]);
-                } else {
+                        DCS_Options[value - 1 - (int32_t)count]);
+                }
+                else {
                     written = 0;
                 }
                 break;
@@ -794,10 +824,12 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
                 const uint32_t count = ARRAY_SIZE(CTCSS_Options);
                 if (value == 0) {
                     written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%s", gSubMenu_OFF_ON[0]);
-                } else if ((uint32_t)value <= count) {
+                }
+                else if ((uint32_t)value <= count) {
                     written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%u.%uHz",
-                                       CTCSS_Options[value - 1] / 10U, CTCSS_Options[value - 1] % 10U);
-                } else {
+                        CTCSS_Options[value - 1] / 10U, CTCSS_Options[value - 1] % 10U);
+                }
+                else {
                     written = 0;
                 }
                 break;
@@ -830,7 +862,7 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
 
     int32_t        mMin;
     int32_t        mMax;
-    char*          buf = gMenuListBuffer;
+    char* buf = gMenuListBuffer;
     MENU_GetLimits(UI_MENU_GetCurrentMenuId(), &mMin, &mMax);
 
     switch (menuId)
@@ -858,20 +890,38 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
     case MENU_R_CTCS:
     case MENU_T_CTCS:
         return UI_MENU_BuildList(MENU_LIST_CTCSS, mMin, mMax, 0, 0U, NULL, NULL, NULL, NULL);
+    case MENU_SC_REV:
+        return UI_MENU_BuildList(MENU_LIST_SCAN_REV, mMin, mMax, 0, 0U, NULL, NULL, NULL, NULL);
+    case MENU_TOT:
+        return UI_MENU_BuildList(MENU_LIST_TIME_MMSS, mMin, mMax, 1, 5U, NULL, NULL, NULL, NULL);
+    case MENU_MIC:
+        return UI_MENU_BuildList(MENU_LIST_MIC_DB, mMin, mMax, 0, 0U, NULL, NULL, NULL, NULL);
+    case MENU_ABR:
+        return UI_MENU_BuildList(MENU_LIST_TIME_MMSS, mMin, mMax, 0, 5U, gSubMenu_OFF_ON[0], gSubMenu_OFF_ON[1], NULL, NULL);
+    case MENU_ABR_MIN:
+    case MENU_ABR_MAX:
+        if (gIsInSubMenu) {
+            BACKLIGHT_SetBrightness(gSubMenuSelection);
+        }
+        return UI_MENU_BuildList(MENU_LIST_NUMERIC, mMin, mMax, 0, 0U, NULL, NULL, NULL, NULL);
+#ifdef ENABLE_FEAT_F4HWN_SLEEP
+    case MENU_SET_OFF:
+        return UI_MENU_BuildList(MENU_LIST_TIME_HM, mMin, mMax, 0, 1U, gSubMenu_OFF_ON[0], NULL, NULL, NULL);
+#endif
 #ifdef ENABLE_VOICE
     case MENU_VOICE:
         return UI_MENU_JoinFixedList((const char*)gSubMenu_VOICE, sizeof(gSubMenu_VOICE[0]), ARRAY_SIZE(gSubMenu_VOICE));
 #endif
     case MENU_ROGER:
         return UI_MENU_JoinFixedList((const char*)gSubMenu_ROGER, sizeof(gSubMenu_ROGER[0]), ARRAY_SIZE(gSubMenu_ROGER));
-    /*case MENU_PONMSG:
-        return UI_MENU_JoinFixedList((const char*)gSubMenu_PONMSG, sizeof(gSubMenu_PONMSG[0]), ARRAY_SIZE(gSubMenu_PONMSG));*/
+        /*case MENU_PONMSG:
+            return UI_MENU_JoinFixedList((const char*)gSubMenu_PONMSG, sizeof(gSubMenu_PONMSG[0]), ARRAY_SIZE(gSubMenu_PONMSG));*/
     case MENU_RESET:
         return UI_MENU_JoinFixedList((const char*)gSubMenu_RESET, sizeof(gSubMenu_RESET[0]), ARRAY_SIZE(gSubMenu_RESET));
     case MENU_F_LOCK:
         return UI_MENU_JoinPtrList(gSubMenu_F_LOCK, ARRAY_SIZE(gSubMenu_F_LOCK));
-    /*case MENU_BAT_TXT:
-        return UI_MENU_JoinFixedList((const char*)gSubMenu_BAT_TXT, sizeof(gSubMenu_BAT_TXT[0]), ARRAY_SIZE(gSubMenu_BAT_TXT));*/
+        /*case MENU_BAT_TXT:
+            return UI_MENU_JoinFixedList((const char*)gSubMenu_BAT_TXT, sizeof(gSubMenu_BAT_TXT[0]), ARRAY_SIZE(gSubMenu_BAT_TXT));*/
     case MENU_BATTYP:
         return UI_MENU_JoinFixedList((const char*)gSubMenu_BATTYP, sizeof(gSubMenu_BATTYP[0]), ARRAY_SIZE(gSubMenu_BATTYP));
 #ifdef ENABLE_ALARM
@@ -956,66 +1006,29 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
     }
 
     // ************************************************************************************
-    // 
+    //
 
     switch (menuId)
     {
 
-    case MENU_SC_REV:
-        if (gIsInSubMenu) {
-            return UI_MENU_BuildList(MENU_LIST_SCAN_REV, mMin, mMax, 0, 0U, NULL, NULL, NULL, NULL);
-        }
-        if(gSubMenuSelection == 0)
+    case MENU_OFFSET:
+        if (!gIsInSubMenu || gInputBoxIndex == 0)
         {
-            return "STOP";
-        }
-        else if(gSubMenuSelection < 81)
-        {
-            snprintf(buf, sizeof(gMenuListBuffer), "CAR %02ds:%03dms", ((gSubMenuSelection * 250) / 1000), ((gSubMenuSelection * 250) % 1000));
+            snprintf(buf, sizeof(gMenuListBuffer), "%3d.%.4u MHz", gSubMenuSelection / 100000, abs(gSubMenuSelection) % 100000);
         }
         else
         {
-            snprintf(buf, sizeof(gMenuListBuffer), "OUT %02dm:%02ds", (((gSubMenuSelection - 80) * 5) / 60), (((gSubMenuSelection - 80) * 5) % 60));
+            const char* ascii = INPUTBOX_GetAscii();
+            snprintf(buf, sizeof(gMenuListBuffer), "%.3s.%.3s MHz", ascii, ascii + 3);
         }
         break;
     case MENU_AUTOLK:
         return UI_MENU_BuildList(MENU_LIST_TIME_MMSS, mMin, mMax, 0, 15U, gSubMenu_OFF_ON[0], NULL, NULL, NULL);
-    case MENU_TOT:
-        if (gIsInSubMenu) {
-            return UI_MENU_BuildList(MENU_LIST_TIME_MMSS, mMin, mMax, 1, 5U, NULL, NULL, NULL, NULL);
-        }
-        snprintf(buf, sizeof(gMenuListBuffer), "%02dm:%02ds", (((gSubMenuSelection + 1) * 5) / 60), (((gSubMenuSelection + 1) * 5) % 60));
-        break;
     case MENU_SAVE:
-        //snprintf(numeric, sizeof(numeric), gSubMenuSelection == 0 ? gSubMenu_OFF_ON[0] : "1:%u", gSubMenuSelection);
         return UI_MENU_BuildList(MENU_LIST_NUMERIC, mMin, mMax, 0, 0U, gSubMenu_OFF_ON[0], NULL, "1:", NULL);
-        break;
-    case MENU_MIC:
-    {   // display the mic gain in actual dB rather than just an index number
-        if (gIsInSubMenu) {
-            return UI_MENU_BuildList(MENU_LIST_MIC_DB, mMin, mMax, 0, 0U, NULL, NULL, NULL, NULL);
-        }
-        const uint8_t mic = gMicGain_dB2[gSubMenuSelection];
-        snprintf(buf, sizeof(gMenuListBuffer), "+%u.%01udB", mic / 2, mic % 2);
-    }
-    break;
-    case MENU_ABR:
-        return UI_MENU_BuildList(MENU_LIST_TIME_MMSS, mMin, mMax, 0, 5U, gSubMenu_OFF_ON[0], gSubMenu_OFF_ON[1], NULL, NULL);
-    
-    case MENU_ABR_MAX:
-        [[fallthrough]];
-    case MENU_ABR_MIN:
-        //snprintf(numeric, sizeof(numeric), "%d", gSubMenuSelection);        
-        if (gIsInSubMenu) {
-            BACKLIGHT_SetBrightness(gSubMenuSelection);            
-            return UI_MENU_BuildList(MENU_LIST_NUMERIC, mMin, mMax, 0, 0U, NULL, NULL, NULL, NULL);
-        } else {
-            snprintf(buf, sizeof(gMenuListBuffer), "%d", gSubMenuSelection);
-        }
         break;
     case MENU_RP_STE:
         return UI_MENU_BuildList(MENU_LIST_NUMERIC, mMin, mMax, 0, 0U, gSubMenu_OFF_ON[0], NULL, NULL, "*100ms");
-        //snprintf(numeric, sizeof(numeric), gSubMenuSelection == 0 ? gSubMenu_OFF_ON[0] : "%u*100ms", gSubMenuSelection);
         break;
     case MENU_VOX:
 #ifdef ENABLE_VOX
@@ -1033,24 +1046,9 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
             BATTERY_VoltsToPercent(gBatteryVoltageAverage)
         );
         break;
-#ifdef ENABLE_FEAT_F4HWN_SLEEP
-    case MENU_SET_OFF:
-        if (gIsInSubMenu) {
-            return UI_MENU_BuildList(MENU_LIST_TIME_HM, mMin, mMax, 0, 1U, gSubMenu_OFF_ON[0], NULL, NULL, NULL);
-        }
-        if (gSubMenuSelection == 0)
-        {
-            return gSubMenu_OFF_ON[0];
-        }
-        else if (gSubMenuSelection < 121)
-        {
-            snprintf(buf, sizeof(gMenuListBuffer), "%dh:%02dm", (gSubMenuSelection / 60), (gSubMenuSelection % 60));
-        }
-        break;
-#endif
-    case MENU_MEM_CH:
+        //case MENU_MEM_CH:
     case MENU_1_CALL:
-    case MENU_DEL_CH:
+        //case MENU_DEL_CH:
     {
         const bool valid = RADIO_CheckValidChannel(gSubMenuSelection, false, 0);
         UI_GenerateChannelStringEx(buf, valid, gSubMenuSelection);
@@ -1067,13 +1065,13 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
     }
     break;
 
-    case MENU_MEM_NAME:
+    /*case MENU_MEM_NAME:
     {
         const bool valid = RADIO_CheckValidChannel(gSubMenuSelection, false, 0);
         UI_GenerateChannelStringEx(buf, valid, gSubMenuSelection);
 
     }
-    break;
+    break;*/
 
     case MENU_UPCODE:
         snprintf(buf, sizeof(gMenuListBuffer), "%.8s\n%.8s", gEeprom.DTMF_UP_CODE, gEeprom.DTMF_UP_CODE + 8);
@@ -1084,7 +1082,6 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
         break;
 
     case MENU_D_PRE:
-        //snprintf(numeric, sizeof(numeric), "%d*10ms", gSubMenuSelection);
         return UI_MENU_BuildList(MENU_LIST_NUMERIC, mMin, mMax, 0, 0U, NULL, NULL, NULL, "*10ms");
         break;
     case MENU_SLIST1:
@@ -1092,11 +1089,12 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
     case MENU_SLIST3:
         if (gSubMenuSelection < 0) {
             snprintf(buf, sizeof(gMenuListBuffer), "NULL");
-        } else {
+        }
+        else {
             UI_GenerateChannelStringEx(buf, true, gSubMenuSelection);
         }
         break;
-    // ************************************************************************************    
+        // ************************************************************************************
     default:
         snprintf(buf, sizeof(gMenuListBuffer), "* %ld *", (long)gSubMenuSelection);
         break;
@@ -1141,10 +1139,10 @@ void UI_DisplayMenu(void)
 
     UI_SelectionList_Draw(&menuList, 15, getCurrentOption());
 
-    if ((UI_MENU_GetCurrentMenuId() == MENU_RESET ||
+    if ((UI_MENU_GetCurrentMenuId() == MENU_RESET /*||
         UI_MENU_GetCurrentMenuId() == MENU_MEM_CH ||
         UI_MENU_GetCurrentMenuId() == MENU_MEM_NAME ||
-        UI_MENU_GetCurrentMenuId() == MENU_DEL_CH) && gAskForConfirmation)
+        UI_MENU_GetCurrentMenuId() == MENU_DEL_CH*/) && gAskForConfirmation)
     {   // display confirmation
 
         UI_DrawPopupWindow(20, 20, 88, 24, "Info");
@@ -1159,7 +1157,8 @@ void UI_DisplayMenu(void)
             current_menu_id == MENU_SLIST2 ||
             current_menu_id == MENU_SLIST3) {
             UI_MENU_DrawScanListPopup();
-        } else {
+        }
+        else {
             UI_DrawPopupWindow(36, 6, 90, 52, UI_SelectionList_GetStringLine(&menuList));
             setSubMenu();
             UI_SelectionList_Draw(&subMenuList, 20, NULL);

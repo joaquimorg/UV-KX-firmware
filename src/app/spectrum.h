@@ -24,7 +24,7 @@
 #include "driver/bk4819.h"
 #include "driver/gpio.h"
 #include "driver/keyboard.h"
-#include "driver/st7565.h"
+//#include "driver/st7565.h"
 #include "driver/system.h"
 #include "driver/systick.h"
 #include "printf.h"
@@ -33,7 +33,7 @@
 #include "misc.h"
 #include "radio.h"
 #include "settings.h"
-#include "ui/helper.h"
+//#include "ui/helper.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
