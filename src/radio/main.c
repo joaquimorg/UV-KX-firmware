@@ -33,7 +33,7 @@
     #ifdef ENABLE_FMRADIO
         #include "app/action.h"
         #include "ui/ui.h"
-#include "ui/gui.h"
+        #include "ui/gui.h"
     #endif
     #ifdef ENABLE_SPECTRUM
         #include "app/spectrum.h"
