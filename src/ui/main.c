@@ -86,7 +86,7 @@ const char *VfoStateStr[] = {
 };
 
 // ***************************************************************************
-
+/*
 #if defined ENABLE_AUDIO_BAR || defined ENABLE_RSSI_BAR
 #ifdef ENABLE_FEAT_F4HWN
 static const uint8_t kBarHollowMet[]  = {0b01111111, 0b01000001, 0b01000001, 0b01111111};
@@ -96,7 +96,7 @@ static const uint8_t kBarSolid[]      = {0b00111110, 0b00111110, 0b00111110, 0b0
 static const uint8_t kBarHollow[]     = {0b01111111, 0b01000001, 0b01000001, 0b01111111};
 #endif
 #endif
-
+*/
 static void DrawSmallAntennaAndBars(uint8_t *p, unsigned int level)
 {
     if(level>6)
@@ -153,7 +153,7 @@ static void DrawSmallAntennaAndBars(uint8_t *p, unsigned int level)
 #endif
 
 #ifdef ENABLE_AUDIO_BAR
-
+/*
 // Approximation of a logarithmic scale using integer arithmetic
 static inline uint8_t log2_approx(unsigned int value) {
     uint8_t log = 0;
@@ -224,6 +224,7 @@ void UI_DisplayAudioBar(void)
             UI_UpdateDisplay();
     }
 }
+    */
 #endif
 
 

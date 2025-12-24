@@ -1,7 +1,6 @@
 #include "ui/gui.h"
 
 #include <stdarg.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "app/uart.h"
@@ -11,12 +10,45 @@
 #include "font/font_8b_tr.h"
 #include "font/font_bn_tn.h"
 #include "font/icons.h"
+#include "printf.h"
 
 #define UI_CHAR_BUFFER_SIZE 600
 
 UI_Context gUiCtx;
 
 static char ui_buffer[UI_CHAR_BUFFER_SIZE];
+
+static void UI_DrawXbm(u8g2_uint_t x, u8g2_uint_t y, bool color,
+                       u8g2_uint_t w, u8g2_uint_t h, const uint8_t *bits)
+{
+    if (gUiCtx.lcd == NULL) {
+        return;
+    }
+    u8g2_SetDrawColor(gUiCtx.lcd, color ? UI_BLACK : UI_WHITE);
+    u8g2_DrawXBM(gUiCtx.lcd, x, y, w, h, bits);
+}
+
+static void UI_SelectionList_AdjustWindow(UI_SelectionList *list)
+{
+    if (list->u8sl.total == 0 || list->u8sl.visible == 0) {
+        list->u8sl.current_pos = 0;
+        list->u8sl.first_pos = 0;
+        return;
+    }
+
+    if (list->u8sl.current_pos >= list->u8sl.total) {
+        list->u8sl.current_pos = (uint8_t)(list->u8sl.total - 1);
+    }
+
+    uint8_t middle = (uint8_t)(list->u8sl.visible / 2);
+    if (list->u8sl.current_pos >= middle && list->u8sl.current_pos < list->u8sl.total - middle) {
+        list->u8sl.first_pos = (uint8_t)(list->u8sl.current_pos - middle);
+    } else if (list->u8sl.current_pos >= list->u8sl.total - middle) {
+        list->u8sl.first_pos = (uint8_t)(list->u8sl.total - list->u8sl.visible);
+    } else {
+        list->u8sl.first_pos = 0;
+    }
+}
 
 void UI_Init(u8g2_t *lcd)
 {
@@ -87,7 +119,7 @@ void UI_SetFont(UI_Font font)
         gUiCtx.only_upper_case = false;
         break;
     case UI_FONT_8B_TR:
-        u8g2_SetFont(gUiCtx.lcd, u8g2_font_8b_tr);
+        u8g2_SetFont(gUiCtx.lcd, u8g2_font_8_tr); //u8g2_font_8b_tr save space
         gUiCtx.only_upper_case = false;
         break;
     case UI_FONT_10_TR:
@@ -201,51 +233,6 @@ void UI_DrawString(UI_TextAlign align,
     u8g2_DrawStr(gUiCtx.lcd, startX, y, str);
 }
 
-void UI_DrawWords(u8g2_uint_t xloc, u8g2_uint_t yloc, const char *msg)
-{
-    if (gUiCtx.lcd == NULL || msg == NULL) {
-        return;
-    }
-
-    u8g2_uint_t dspwidth = u8g2_GetDisplayWidth(gUiCtx.lcd);
-    int strwidth = 0;
-    char glyph[2];
-    glyph[1] = 0;
-
-    for (const char *ptr = msg, *lastblank = NULL; *ptr; ++ptr) {
-        while (xloc == 0 && (*msg == ' ' || *msg == '\n')) {
-            if (ptr == msg++) {
-                ++ptr;
-            }
-        }
-
-        glyph[0] = *ptr;
-        strwidth += u8g2_GetStrWidth(gUiCtx.lcd, glyph);
-        if (*ptr == ' ') {
-            lastblank = ptr;
-        } else {
-            ++strwidth;
-        }
-
-        if (*ptr == '\n' || xloc + (u8g2_uint_t)strwidth > dspwidth) {
-            u8g2_int_t starting_xloc = (u8g2_int_t)xloc;
-            while (msg < (lastblank ? lastblank : ptr)) {
-                glyph[0] = *msg++;
-                xloc += u8g2_DrawStr(gUiCtx.lcd, xloc, yloc, glyph);
-            }
-            strwidth -= (int)(xloc - starting_xloc);
-            yloc += u8g2_GetMaxCharHeight(gUiCtx.lcd);
-            xloc = 0;
-            lastblank = NULL;
-        }
-    }
-
-    while (*msg) {
-        glyph[0] = *msg++;
-        xloc += u8g2_DrawStr(gUiCtx.lcd, xloc, yloc, glyph);
-    }
-}
-
 void UI_DrawStringf(UI_TextAlign align,
                     u8g2_uint_t xstart,
                     u8g2_uint_t xend,
@@ -301,75 +288,39 @@ void UI_DrawPopupWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const char *
     UI_DrawString(UI_TEXT_ALIGN_CENTER, x, (uint8_t)(x + w), (uint8_t)(y + 6), false, false, false, title);
 }
 
-uint8_t UI_KeycodeToNumber(uint8_t keycode)
-{
-    if (keycode <= 9U) {
-        return keycode;
-    }
-    return 0;
-}
-
 void UI_DrawIc8Battery50(u8g2_uint_t x, u8g2_uint_t y, bool color)
 {
-    if (gUiCtx.lcd == NULL) {
-        return;
-    }
-    u8g2_SetDrawColor(gUiCtx.lcd, color ? UI_BLACK : UI_WHITE);
-    u8g2_DrawXBM(gUiCtx.lcd, x, y, batt_50_width, batt_50_height, batt_50_bits);
+    UI_DrawXbm(x, y, color, batt_50_width, batt_50_height, batt_50_bits);
 }
 
 void UI_DrawIc8Charging(u8g2_uint_t x, u8g2_uint_t y, bool color)
 {
-    if (gUiCtx.lcd == NULL) {
-        return;
-    }
-    u8g2_SetDrawColor(gUiCtx.lcd, color ? UI_BLACK : UI_WHITE);
-    u8g2_DrawXBM(gUiCtx.lcd, x, y, charging_width, charging_height, charging_bits);
+    UI_DrawXbm(x, y, color, charging_width, charging_height, charging_bits);
 }
 
 void UI_DrawSmeter(u8g2_uint_t x, u8g2_uint_t y, bool color)
 {
-    if (gUiCtx.lcd == NULL) {
-        return;
-    }
-    u8g2_SetDrawColor(gUiCtx.lcd, color ? UI_BLACK : UI_WHITE);
-    u8g2_DrawXBM(gUiCtx.lcd, x, y, smeter_width, smeter_height, smeter_bits);
+    UI_DrawXbm(x, y, color, smeter_width, smeter_height, smeter_bits);
 }
 
 void UI_DrawMmeter(u8g2_uint_t x, u8g2_uint_t y, bool color)
 {
-    if (gUiCtx.lcd == NULL) {
-        return;
-    }
-    u8g2_SetDrawColor(gUiCtx.lcd, color ? UI_BLACK : UI_WHITE);
-    u8g2_DrawXBM(gUiCtx.lcd, x, y, mmeter_width, mmeter_height, mmeter_bits);
+    UI_DrawXbm(x, y, color, mmeter_width, mmeter_height, mmeter_bits);
 }
 
 void UI_DrawDotline(u8g2_uint_t x, u8g2_uint_t y, bool color)
 {
-    if (gUiCtx.lcd == NULL) {
-        return;
-    }
-    u8g2_SetDrawColor(gUiCtx.lcd, color ? UI_BLACK : UI_WHITE);
-    u8g2_DrawXBM(gUiCtx.lcd, x, y, dotline_width, dotline_height, dotline_bits);
+    UI_DrawXbm(x, y, color, dotline_width, dotline_height, dotline_bits);
 }
 
 void UI_DrawPs(u8g2_uint_t x, u8g2_uint_t y, bool color)
 {
-    if (gUiCtx.lcd == NULL) {
-        return;
-    }
-    u8g2_SetDrawColor(gUiCtx.lcd, color ? UI_BLACK : UI_WHITE);
-    u8g2_DrawXBM(gUiCtx.lcd, x, y, batt_ps_width, batt_ps_height, batt_ps_bits);
+    UI_DrawXbm(x, y, color, batt_ps_width, batt_ps_height, batt_ps_bits);
 }
 
 void UI_DrawSave(u8g2_uint_t x, u8g2_uint_t y, bool color)
 {
-    if (gUiCtx.lcd == NULL) {
-        return;
-    }
-    u8g2_SetDrawColor(gUiCtx.lcd, color ? UI_BLACK : UI_WHITE);
-    u8g2_DrawXBM(gUiCtx.lcd, x, y, memory_width, memory_height, memory_bits);
+    UI_DrawXbm(x, y, color, memory_width, memory_height, memory_bits);
 }
 
 void UI_DrawLock(u8g2_uint_t x, u8g2_uint_t y, bool inverse)
@@ -438,29 +389,6 @@ void UI_DrawFrequencySmall(bool invert, uint32_t freq, u8g2_uint_t xend, u8g2_ui
         UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, xend, y, true, invert, false, "%2lu.%03lu.%02lu",
                        freq / 100000UL, (freq % 100000UL) / 100UL, freq % 100UL);
     }
-}
-
-int16_t UI_ConvertRSSIToPixels(int16_t rssi_dbm)
-{
-    int16_t pixels;
-
-    if (rssi_dbm <= -127) {
-        pixels = 0;
-    } else if (rssi_dbm >= -73) {
-        int16_t extra_dB = (int16_t)(rssi_dbm + 73);
-        int16_t extraBlocks = (int16_t)(extra_dB / 10);
-        pixels = (int16_t)(34 + extraBlocks * 3);
-    } else {
-        int16_t sPoints = (int16_t)((rssi_dbm + 127) / 6);
-        pixels = (int16_t)(sPoints * 3);
-        int16_t remainder = (int16_t)((rssi_dbm + 127) % 6);
-        pixels = (int16_t)(pixels + (remainder * 3) / 6);
-    }
-
-    if (pixels > 51) {
-        pixels = 51;
-    }
-    return pixels;
 }
 
 void UI_DrawRSSI(uint8_t s_level, u8g2_uint_t x, u8g2_uint_t y)
@@ -629,14 +557,10 @@ void UI_SelectionList_Next(UI_SelectionList *list)
     if (list->u8sl.current_pos >= list->u8sl.total) {
         list->u8sl.current_pos = 0;
         list->u8sl.first_pos = 0;
-    } else {
-        uint8_t middle = (uint8_t)(list->u8sl.visible / 2);
-        if (list->u8sl.current_pos >= middle && list->u8sl.current_pos < list->u8sl.total - middle) {
-            list->u8sl.first_pos = (uint8_t)(list->u8sl.current_pos - middle);
-        } else if (list->u8sl.current_pos >= list->u8sl.total - middle) {
-            list->u8sl.first_pos = (uint8_t)(list->u8sl.total - list->u8sl.visible);
-        }
+        return;
     }
+
+    UI_SelectionList_AdjustWindow(list);
 }
 
 void UI_SelectionList_Prev(UI_SelectionList *list)
@@ -650,12 +574,7 @@ void UI_SelectionList_Prev(UI_SelectionList *list)
         list->u8sl.first_pos = (list->u8sl.total > list->u8sl.visible) ? (uint8_t)(list->u8sl.total - list->u8sl.visible) : 0;
     } else {
         list->u8sl.current_pos--;
-        uint8_t middle = (uint8_t)(list->u8sl.visible / 2);
-        if (list->u8sl.current_pos >= middle && list->u8sl.current_pos < list->u8sl.total - middle) {
-            list->u8sl.first_pos = (uint8_t)(list->u8sl.current_pos - middle);
-        } else if (list->u8sl.current_pos < middle) {
-            list->u8sl.first_pos = 0;
-        }
+        UI_SelectionList_AdjustWindow(list);
     }
 }
 
@@ -672,23 +591,8 @@ void UI_SelectionList_Set(UI_SelectionList *list, uint8_t start_pos, uint8_t dis
         list->u8sl.visible = list->u8sl.total;
     }
 
-    uint8_t middlePos = (uint8_t)(list->u8sl.visible / 2);
-
     list->u8sl.current_pos = start_pos;
-
-    if (list->u8sl.current_pos >= middlePos) {
-        list->u8sl.first_pos = (uint8_t)(list->u8sl.current_pos - middlePos);
-    } else {
-        list->u8sl.first_pos = 0;
-    }
-
-    if (list->u8sl.first_pos + list->u8sl.visible > list->u8sl.total) {
-        list->u8sl.first_pos = (uint8_t)(list->u8sl.total - list->u8sl.visible);
-    }
-
-    if (list->u8sl.current_pos >= list->u8sl.total) {
-        list->u8sl.current_pos = (uint8_t)(list->u8sl.total - 1);
-    }
+    UI_SelectionList_AdjustWindow(list);
 
     list->slines = sl;
     list->suffix = sf;
@@ -702,21 +606,7 @@ void UI_SelectionList_SetCurrentPos(UI_SelectionList *list, uint8_t pos)
     }
 
     list->u8sl.current_pos = pos;
-    uint8_t middlePos = (uint8_t)(list->u8sl.visible / 2);
-
-    if (list->u8sl.current_pos >= middlePos) {
-        list->u8sl.first_pos = (uint8_t)(list->u8sl.current_pos - middlePos);
-    } else {
-        list->u8sl.first_pos = 0;
-    }
-
-    if (list->u8sl.first_pos + list->u8sl.visible > list->u8sl.total) {
-        list->u8sl.first_pos = (uint8_t)(list->u8sl.total - list->u8sl.visible);
-    }
-
-    if (list->u8sl.current_pos >= list->u8sl.total) {
-        list->u8sl.current_pos = (uint8_t)(list->u8sl.total - 1);
-    }
+    UI_SelectionList_AdjustWindow(list);
 }
 
 uint8_t UI_SelectionList_GetListPos(const UI_SelectionList *list)

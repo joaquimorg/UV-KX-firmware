@@ -196,6 +196,7 @@ CCFLAGS += -DARMCM0
 LDFLAGS =
 LDFLAGS += -z noseparate-code -z noexecstack -mcpu=cortex-m0 -nostartfiles -Wl,-L,linker -Wl,-T,$(LD_FILE) -Wl,--gc-sections
 LDFLAGS += -Wl,--build-id=none
+LDFLAGS += -Wl,-Map,$(BUILD)/$(PROJECT_NAME).map
 
 # Use newlib-nano instead of newlib
 LDFLAGS += --specs=nano.specs -lc -lnosys -mthumb -mabi=aapcs -lm -fno-rtti -fno-exceptions

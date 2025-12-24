@@ -94,7 +94,7 @@
   HVLine procedures are also used by the text drawing functions.
 */
 #ifndef U8G2_WITHOUT_HVLINE_SPEED_OPTIMIZATION
-#define U8G2_WITH_HVLINE_SPEED_OPTIMIZATION
+//#define U8G2_WITH_HVLINE_SPEED_OPTIMIZATION
 #endif
 
 /*

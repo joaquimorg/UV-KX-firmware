@@ -67,12 +67,10 @@ void UI_SetBlackColor(void);
 void UI_SetWhiteColor(void);
 void UI_DrawStrf(u8g2_uint_t x, u8g2_uint_t y, const char *fmt, ...);
 void UI_DrawString(UI_TextAlign align, u8g2_uint_t xstart, u8g2_uint_t xend, u8g2_uint_t y, bool is_black, bool is_fill, bool is_box, const char *str);
-void UI_DrawWords(u8g2_uint_t xloc, u8g2_uint_t yloc, const char *msg);
 void UI_DrawStringf(UI_TextAlign align, u8g2_uint_t xstart, u8g2_uint_t xend, u8g2_uint_t y, bool is_black, bool is_fill, bool is_box, const char *fmt, ...);
 const char *UI_GetStrValue(const char *str, uint8_t index);
 int UI_StringLengthNL(const char *str);
 void UI_DrawPopupWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const char *title);
-uint8_t UI_KeycodeToNumber(uint8_t keycode);
 
 void UI_DrawIc8Battery50(u8g2_uint_t x, u8g2_uint_t y, bool color);
 void UI_DrawIc8Charging(u8g2_uint_t x, u8g2_uint_t y, bool color);
@@ -86,7 +84,6 @@ void UI_DrawBox(u8g2_uint_t x, u8g2_uint_t y, u8g2_uint_t w, u8g2_uint_t h);
 
 void UI_DrawFrequencyBig(bool invert, uint32_t freq, u8g2_uint_t xend, u8g2_uint_t y);
 void UI_DrawFrequencySmall(bool invert, uint32_t freq, u8g2_uint_t xend, u8g2_uint_t y);
-int16_t UI_ConvertRSSIToPixels(int16_t rssi_dbm);
 void UI_DrawRSSI(uint8_t s_level, u8g2_uint_t x, u8g2_uint_t y);
 void UI_DrawBatteryIcon(uint8_t level, u8g2_uint_t x, u8g2_uint_t y);
 const char *UI_GenerateCTDCList(const uint16_t *options, size_t count, bool is_ctcss);
