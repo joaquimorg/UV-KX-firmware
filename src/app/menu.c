@@ -1804,13 +1804,13 @@ static void MENU_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 
         gRequestDisplayScreen = DISPLAY_MENU;
 
-        if (UI_MENU_GetCurrentMenuId() != MENU_ABR
+        /*if (UI_MENU_GetCurrentMenuId() != MENU_ABR
             && UI_MENU_GetCurrentMenuId() != MENU_ABR_MIN
             && UI_MENU_GetCurrentMenuId() != MENU_ABR_MAX
             && gEeprom.BACKLIGHT_TIME == 0) // backlight always off and not in the backlight menu
         {
             BACKLIGHT_TurnOff();
-        }
+        }*/
 
         return;
     }
