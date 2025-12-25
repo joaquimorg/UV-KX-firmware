@@ -50,6 +50,18 @@ static void toggle_chan_scanlist(void)
     if (SCANNER_IsScanning())
         return;
 
+#ifndef ENABLE_SCANLIST
+#ifdef ENABLE_SCAN_RANGES
+    if (!IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
+        gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
+        gScanRangeStop = gEeprom.VfoInfo[!gEeprom.TX_VFO].freq_config_RX.Frequency;
+        if (gScanRangeStart > gScanRangeStop) {
+            SWAP(gScanRangeStart, gScanRangeStop);
+        }
+    }
+#endif
+    return;
+#else
     if(!IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
 #ifdef ENABLE_SCAN_RANGES
         gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
@@ -79,12 +91,11 @@ static void toggle_chan_scanlist(void)
 
     gVfoConfigureMode = VFO_CONFIGURE;
     gFlagResetVfos    = true;
+#endif
 }
 
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 {
-    uint8_t Vfo = gEeprom.TX_VFO;
-
 #ifdef ENABLE_FEAT_F4HWN_RESCUE_OPS
     if(gEeprom.MENU_LOCK == true) {
         if(Key == 2) { // Enable A/B only
@@ -113,6 +124,8 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
             break;
 
         case KEY_1:
+        {
+            uint8_t Vfo = gEeprom.TX_VFO;
             if (!IS_FREQ_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
                 gWasFKeyPressed = false;
                 gUpdateStatus   = true;
@@ -145,8 +158,6 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
                     RADIO_ApplyOffset(gRxVfo);
                     RADIO_ConfigureSquelchAndOutputPower(gRxVfo);
                     RADIO_SetupRegisters(true);
-
-                    //SETTINGS_SaveChannel(channel, gEeprom.RX_VFO, gRxVfo, 1);
 
                     gRequestSaveChannel = 1;
                     gRequestSaveVFO = true;
@@ -184,6 +195,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
                 gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
 
             break;
+        }
 
         case KEY_2:
             #ifdef ENABLE_FEAT_F4HWN
@@ -237,7 +249,9 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 #endif
             }
             else {
+#ifdef ENABLE_SCANLIST
                 toggle_chan_scanlist();
+#endif
             }
 
             break;
@@ -260,6 +274,8 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
             break;
 
         case KEY_9:
+        {
+            uint8_t Vfo = gEeprom.TX_VFO;
             if (RADIO_CheckValidChannel(gEeprom.CHAN_1_CALL, false, 0)) {
                 gEeprom.MrChannel[Vfo]     = gEeprom.CHAN_1_CALL;
                 gEeprom.ScreenChannel[Vfo] = gEeprom.CHAN_1_CALL;
@@ -276,6 +292,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
             if (beep)
                 gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
             break;
+        }
 
 #ifdef ENABLE_FEAT_F4HWN // Set Squelch F + UP or Down and Step F + SIDE1 or F + SIDE2
         case KEY_UP:
@@ -290,6 +307,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
             break;
 
         case KEY_SIDE1:
+        {
             uint8_t a = FREQUENCY_GetSortedIdxFromStepIdx(gTxVfo->STEP_SETTING);
             if (a < STEP_N_ELEM - 1)
             {
@@ -302,7 +320,9 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
             gVfoConfigureMode     = VFO_CONFIGURE;
             gWasFKeyPressed = false;
             break;
+        }
         case KEY_SIDE2:
+        {
             uint8_t b = FREQUENCY_GetSortedIdxFromStepIdx(gTxVfo->STEP_SETTING);
             if (b > 0)
             {
@@ -315,6 +335,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
             gVfoConfigureMode     = VFO_CONFIGURE;
             gWasFKeyPressed = false;
             break;
+        }
 #endif
 
         default:
@@ -499,16 +520,7 @@ static void MAIN_Key_DIGITS(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
             uint32_t Frequency = inputFreq * 100;
 
             // clamp the frequency entered to some valid value
-            if (Frequency < frequencyBandTable[0].lower) {
-                Frequency = frequencyBandTable[0].lower;
-            }
-            else if (Frequency >= BX4819_band1.upper && Frequency < BX4819_band2.lower) {
-                const uint32_t center = (BX4819_band1.upper + BX4819_band2.lower) / 2;
-                Frequency = (Frequency < center) ? BX4819_band1.upper : BX4819_band2.lower;
-            }
-            else if (Frequency > frequencyBandTable[BAND_N_ELEM - 1].upper) {
-                Frequency = frequencyBandTable[BAND_N_ELEM - 1].upper;
-            }
+            Frequency = FREQUENCY_ClampToValid(Frequency);
 
             const FREQUENCY_Band_t band = FREQUENCY_GetBand(Frequency);
 

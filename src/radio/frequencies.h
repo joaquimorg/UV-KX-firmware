@@ -83,6 +83,8 @@ extern const uint16_t gStepFrequencyTable[];
 FREQUENCY_Band_t FREQUENCY_GetBand(uint32_t Frequency);
 uint8_t          FREQUENCY_CalculateOutputPower(uint8_t TxpLow, uint8_t TxpMid, uint8_t TxpHigh, int32_t LowerLimit, int32_t Middle, int32_t UpperLimit, int32_t Frequency);
 uint32_t         FREQUENCY_RoundToStep(uint32_t freq, uint16_t step);
+uint32_t         FREQUENCY_ClampToValid(uint32_t freq);
+uint32_t         FREQUENCY_ClampToBand(uint32_t freq, FREQUENCY_Band_t band);
 
 STEP_Setting_t   FREQUENCY_GetStepIdxFromSortedIdx(uint8_t sortedIdx);
 uint32_t         FREQUENCY_GetSortedIdxFromStepIdx(uint8_t step);

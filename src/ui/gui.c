@@ -277,10 +277,10 @@ void UI_DrawPopupWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const char *
     }
 
     UI_SetWhiteColor();
-    u8g2_DrawRBox(gUiCtx.lcd, x - 1, y - 1, w + 3, h + 4, 5);
+    u8g2_DrawBox(gUiCtx.lcd, x - 1, y - 1, w + 3, h + 4);
     UI_SetBlackColor();
-    u8g2_DrawRFrame(gUiCtx.lcd, x, y, w, (uint8_t)(h + 1), 5);
-    u8g2_DrawRFrame(gUiCtx.lcd, x, y, (uint8_t)(w + 1), (uint8_t)(h + 2), 5);
+    u8g2_DrawFrame(gUiCtx.lcd, x, y, w, (uint8_t)(h + 1));
+    u8g2_DrawFrame(gUiCtx.lcd, x, y, (uint8_t)(w + 1), (uint8_t)(h + 2));
 
     u8g2_DrawBox(gUiCtx.lcd, (uint8_t)(x + 1), (uint8_t)(y + 1), (uint8_t)(w - 1), 6);
 

@@ -46,7 +46,9 @@ void UI_DisplayScanner(void)
     if (gScanCssState < SCAN_CSS_STATE_FOUND || !gScanUseCssResult) {
         //pPrintStr = "CTC:******";
     } else if (gScanCssResultType == CODE_TYPE_CONTINUOUS_TONE) {
-        sprintf(String, "CTC:%u.%uHz", CTCSS_Options[gScanCssResultCode] / 10, CTCSS_Options[gScanCssResultCode] % 10);
+        sprintf(String, "CTC:%u.%uHz",
+                CTCSS_Options[gScanCssResultCode] / 10,
+                CTCSS_Options[gScanCssResultCode] % 10);
         //pPrintStr = String;
     } else {
         sprintf(String, "DCS:D%03oN", DCS_Options[gScanCssResultCode]);

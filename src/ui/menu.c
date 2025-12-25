@@ -53,25 +53,29 @@ const t_menu_item MenuList[] =
         {"TX DCS",      MENU_T_DCS         }, // was "T_DCS"
         {"TX CTCS",     MENU_T_CTCS        }, // was "T_CTCS"
         {"TX ODIR",     MENU_SFT_D         }, // was "SFT_D"
-        {"TX OFFSET",   MENU_OFFSET        }, // was "OFFSET"
+        {"TXOFFSET",    MENU_OFFSET        }, // was "OFFSET"
         {"W/N",         MENU_W_N           },
-        {"BUSY LOCK",   MENU_BCL           }, // was "BCL"
-        {"COMPANDER",   MENU_COMPAND       }, //compander
+        {"BUSYLOCK",    MENU_BCL           }, // was "BCL"
+        {"COMPANDR",    MENU_COMPAND       }, //compander
         {"MODE",        MENU_AM            }, // was "AM"
     #ifdef ENABLE_FEAT_F4HWN
         {"TX LOCK",     MENU_TX_LOCK       },
     #endif
+    #ifdef ENABLE_SCANLIST
         {"SC ADD1",     MENU_S_ADD1        },
         {"SC ADD2",     MENU_S_ADD2        },
         {"SC ADD3",     MENU_S_ADD3        },
+    #endif
         //{"CH SAVE",     MENU_MEM_CH        }, // was "MEM-CH"
         //{"CH DELETE",   MENU_DEL_CH        }, // was "DEL-CH"
         //{"CH NAME",     MENU_MEM_NAME      },
 
+    #ifdef ENABLE_SCANLIST
         {"S LIST",      MENU_S_LIST        },
         {"S LIST1",     MENU_SLIST1        },
         {"S LIST2",     MENU_SLIST2        },
         {"S LIST3",     MENU_SLIST3        },
+    #endif
         {"SCN REV",     MENU_SC_REV        },
     #ifndef ENABLE_FEAT_F4HWN
         #ifdef ENABLE_NOAA
@@ -166,11 +170,11 @@ const t_menu_item MenuList[] =
         // enabled if pressing both the PTT and upper side button at power-on
         {"F LOCK",      MENU_F_LOCK        },
     #ifndef ENABLE_FEAT_F4HWN
-        {"TX 200",      MENU_200TX         }, // was "200TX"
-        {"TX 350",      MENU_350TX         }, // was "350TX"
-        {"TX 500",      MENU_500TX         }, // was "500TX"
+    //    {"TX 200",      MENU_200TX         }, // was "200TX"
+    //    {"TX 350",      MENU_350TX         }, // was "350TX"
+    //    {"TX 500",      MENU_500TX         }, // was "500TX"
     #endif
-        {"350 EN",      MENU_350EN         }, // was "350EN"
+    //    {"350 EN",      MENU_350EN         }, // was "350EN"
     #ifdef ENABLE_F_CAL_MENU
         {"FR CALI",     MENU_F_CALI        }, // reference xtal calibration
     #endif
@@ -387,6 +391,7 @@ const char gSubMenu_SET_KEY[][9] =
 #endif
 #endif
 
+#ifdef ENABLE_SCANLIST
 const char gSubMenu_SLIST[][9] =
 {
     "NO LIST",
@@ -396,6 +401,7 @@ const char gSubMenu_SLIST[][9] =
     "LISTS 1-3",
     "ALL"
 };
+#endif
 
 
 const t_sidefunction gSubMenu_SIDEFUNCTIONS[] =
@@ -498,11 +504,101 @@ int     edit_index;
 UI_SelectionList menuList;
 UI_SelectionList subMenuList;
 
-static char gMenuListBuffer[2048];
+#define MENU_LIST_BUFFER_SIZE 1536
+
+static char gMenuListBuffer[MENU_LIST_BUFFER_SIZE];
+
+static bool UI_MENU_AppendChar(char *buf, size_t cap, size_t *out, char c)
+{
+    if (*out + 1 >= cap) {
+        return false;
+    }
+    buf[(*out)++] = c;
+    buf[*out] = '\0';
+    return true;
+}
+
+static bool UI_MENU_AppendStr(char *buf, size_t cap, size_t *out, const char *src)
+{
+    if (src == NULL) {
+        return true;
+    }
+    while (*src != '\0') {
+        if (!UI_MENU_AppendChar(buf, cap, out, *src++)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool UI_MENU_AppendUIntWidth(char *buf, size_t cap, size_t *out, uint32_t v, uint8_t width)
+{
+    char tmp[10];
+    uint8_t len = 0;
+    do {
+        tmp[len++] = (char)('0' + (v % 10U));
+        v /= 10U;
+    } while (v && len < (uint8_t)sizeof(tmp));
+
+    if (width < len) {
+        width = len;
+    }
+    if (*out + width >= cap) {
+        return false;
+    }
+    while (width > len) {
+        buf[(*out)++] = '0';
+        width--;
+    }
+    while (len > 0) {
+        buf[(*out)++] = tmp[--len];
+    }
+    buf[*out] = '\0';
+    return true;
+}
+
+static bool UI_MENU_AppendInt(char *buf, size_t cap, size_t *out, int32_t v)
+{
+    if (v < 0) {
+        if (!UI_MENU_AppendChar(buf, cap, out, '-')) {
+            return false;
+        }
+        v = (int32_t)-(int64_t)v;
+    }
+    return UI_MENU_AppendUIntWidth(buf, cap, out, (uint32_t)v, 0);
+}
+
+static bool UI_MENU_AppendOctalWidth(char *buf, size_t cap, size_t *out, uint32_t v, uint8_t width)
+{
+    char tmp[12];
+    uint8_t len = 0;
+    do {
+        tmp[len++] = (char)('0' + (v & 7U));
+        v >>= 3U;
+    } while (v && len < (uint8_t)sizeof(tmp));
+
+    if (width < len) {
+        width = len;
+    }
+    if (*out + width >= cap) {
+        return false;
+    }
+    while (width > len) {
+        buf[(*out)++] = '0';
+        width--;
+    }
+    while (len > 0) {
+        buf[(*out)++] = tmp[--len];
+    }
+    buf[*out] = '\0';
+    return true;
+}
 
 static const char* UI_MENU_GetMenuListLines(void)
 {
-    static char s_menuLines[ARRAY_SIZE(MenuList) * 12] = { 0 }; // 10 chars + '\n' + '\0' headroom
+    static char s_menuLines[ARRAY_SIZE(MenuList) *
+                                (sizeof(MenuList[0].name) + 1U) +
+                            1U] = {0};
 
     size_t out = 0;
     const size_t cap = sizeof(s_menuLines);
@@ -531,6 +627,7 @@ static const char* UI_MENU_GetMenuListLines(void)
     return s_menuLines;
 }
 
+#ifdef ENABLE_SCANLIST
 static void UI_MENU_DrawScanListPopup(void)
 {
     const uint8_t popup_x = 36;
@@ -548,21 +645,19 @@ static void UI_MENU_DrawScanListPopup(void)
 
     UI_SetFont(FONT_8B_TR);
     if (selection < 0) {
-        snprintf(line, sizeof(line), "NULL");
-    }
-    else {
+        strcpy(line, "NULL");
+    } else {
         UI_GenerateChannelStringEx(line, true, selection);
     }
     UI_DrawString(UI_TEXT_ALIGN_CENTER, text_x1, text_x2, popup_y + 14, true, false, false, line);
 
     UI_SetFont(FONT_8_TR);
     if (selection < 0) {
-        snprintf(line, sizeof(line), "--");
-    }
-    else {
+        strcpy(line, "--");
+    } else {
         SETTINGS_FetchChannelName(line, selection);
         if (line[0] == '\0') {
-            snprintf(line, sizeof(line), "--");
+            strcpy(line, "--");
         }
     }
     UI_DrawString(UI_TEXT_ALIGN_CENTER, text_x1, text_x2, (uint8_t)(popup_y + 14 + line_h), true, false, false, line);
@@ -578,12 +673,14 @@ static void UI_MENU_DrawScanListPopup(void)
         }
     }
 }
+#endif
 
 static const char* squelchStr = "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9";
 
 static const char* UI_MENU_JoinFixedList(const char* arr, size_t elem_size, size_t count)
 {
-    static char buffer[512];
+    char *buffer = gMenuListBuffer;
+    const size_t cap = sizeof(gMenuListBuffer);
     size_t out = 0;
 
     for (size_t i = 0; i < count; ++i) {
@@ -594,14 +691,14 @@ static const char* UI_MENU_JoinFixedList(const char* arr, size_t elem_size, size
             continue;
         }
 
-        if (out + len + 1 >= sizeof(buffer)) {
+        if (out + len + 1 >= cap) {
             break;
         }
 
         memcpy(&buffer[out], item, len);
         out += len;
 
-        if ((i + 1) < count && out + 1 < sizeof(buffer)) {
+        if ((i + 1) < count && out + 1 < cap) {
             buffer[out++] = '\n';
         }
     }
@@ -612,7 +709,8 @@ static const char* UI_MENU_JoinFixedList(const char* arr, size_t elem_size, size
 
 static const char* UI_MENU_GetStepList(void)
 {
-    static char buffer[STEP_N_ELEM * 12];
+    char *buffer = gMenuListBuffer;
+    const size_t cap = sizeof(gMenuListBuffer);
     size_t out = 0;
 
     for (uint8_t i = 0; i < STEP_N_ELEM; ++i) {
@@ -620,16 +718,15 @@ static const char* UI_MENU_GetStepList(void)
         const uint16_t step = gStepFrequencyTable[step_idx];
         const uint16_t whole = step / 100;
         const uint16_t frac = step % 100;
-        const int written = snprintf(&buffer[out], sizeof(buffer) - out, "%u.%02ukHz", (unsigned int)whole, (unsigned int)frac);
-
-        if (written <= 0 || (size_t)written >= sizeof(buffer) - out) {
-            buffer[sizeof(buffer) - 1] = '\0';
+        if (!UI_MENU_AppendUIntWidth(buffer, cap, &out, whole, 0) ||
+            !UI_MENU_AppendChar(buffer, cap, &out, '.') ||
+            !UI_MENU_AppendUIntWidth(buffer, cap, &out, frac, 2) ||
+            !UI_MENU_AppendStr(buffer, cap, &out, "kHz")) {
+            buffer[cap - 1] = '\0';
             break;
         }
 
-        out += (size_t)written;
-
-        if ((i + 1) < STEP_N_ELEM && out + 1 < sizeof(buffer)) {
+        if ((i + 1) < STEP_N_ELEM && out + 1 < cap) {
             buffer[out++] = '\n';
             buffer[out] = '\0';
         }
@@ -640,7 +737,8 @@ static const char* UI_MENU_GetStepList(void)
 
 static const char* UI_MENU_JoinPtrList(const char* const* arr, size_t count)
 {
-    static char buffer[512];
+    char *buffer = gMenuListBuffer;
+    const size_t cap = sizeof(gMenuListBuffer);
     size_t out = 0;
 
     gSubMenuSelectionOffset = 0;
@@ -655,14 +753,14 @@ static const char* UI_MENU_JoinPtrList(const char* const* arr, size_t count)
             continue;
         }
 
-        if (out + len + 1 >= sizeof(buffer)) {
+        if (out + len + 1 >= cap) {
             break;
         }
 
         memcpy(&buffer[out], item, len);
         out += len;
 
-        if ((i + 1) < count && out + 1 < sizeof(buffer)) {
+        if ((i + 1) < count && out + 1 < cap) {
             buffer[out++] = '\n';
         }
     }
@@ -673,7 +771,8 @@ static const char* UI_MENU_JoinPtrList(const char* const* arr, size_t count)
 
 static const char* UI_MENU_JoinSideFunctions(void)
 {
-    static char buffer[512];
+    char *buffer = gMenuListBuffer;
+    const size_t cap = sizeof(gMenuListBuffer);
     size_t out = 0;
 
     for (size_t i = 0; i < gSubMenu_SIDEFUNCTIONS_size; ++i) {
@@ -684,14 +783,14 @@ static const char* UI_MENU_JoinSideFunctions(void)
             continue;
         }
 
-        if (out + len + 1 >= sizeof(buffer)) {
+        if (out + len + 1 >= cap) {
             break;
         }
 
         memcpy(&buffer[out], item, len);
         out += len;
 
-        if ((i + 1) < gSubMenu_SIDEFUNCTIONS_size && out + 1 < sizeof(buffer)) {
+        if ((i + 1) < gSubMenu_SIDEFUNCTIONS_size && out + 1 < cap) {
             buffer[out++] = '\n';
         }
     }
@@ -746,23 +845,34 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
             }
         }
 
-        int written;
         if (item_text != NULL) {
-            written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%s", item_text);
-        }
-        else {
+            if (!UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, item_text)) {
+                gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                break;
+            }
+        } else {
             switch (mode) {
             case MENU_LIST_NUMERIC:
-                written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%s%ld%s",
-                    prefix, (long)value, suffix);
+                if (!UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, prefix) ||
+                    !UI_MENU_AppendInt(gMenuListBuffer, sizeof(gMenuListBuffer), &out, value) ||
+                    !UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, suffix)) {
+                    gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                    value = max;
+                }
                 break;
             case MENU_LIST_TIME_MMSS:
             {
                 const uint32_t seconds = (uint32_t)(value + base_offset) * step;
                 const uint32_t minutes = seconds / 60U;
                 const uint32_t secs = seconds % 60U;
-                written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%02um:%02us",
-                    (unsigned int)minutes, (unsigned int)secs);
+                if (!UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, minutes, 2) ||
+                    !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 'm') ||
+                    !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, ':') ||
+                    !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, secs, 2) ||
+                    !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 's')) {
+                    gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                    value = max;
+                }
                 break;
             }
             case MENU_LIST_TIME_HM:
@@ -770,52 +880,87 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
                 const uint32_t total_minutes = (uint32_t)value * step;
                 const uint32_t hours = total_minutes / 60U;
                 const uint32_t minutes = total_minutes % 60U;
-                written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%uh:%02um",
-                    (unsigned int)hours, (unsigned int)minutes);
+                if (!UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, hours, 0) ||
+                    !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 'h') ||
+                    !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, ':') ||
+                    !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, minutes, 2) ||
+                    !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 'm')) {
+                    gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                    value = max;
+                }
                 break;
             }
             case MENU_LIST_MIC_DB:
             {
                 const uint8_t mic = gMicGain_dB2[value];
-                written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "+%u.%01udB",
-                    mic / 2U, mic % 2U);
+                if (!UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, '+') ||
+                    !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, mic / 2U, 0) ||
+                    !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, '.') ||
+                    !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, mic % 2U, 1) ||
+                    !UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, "dB")) {
+                    gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                    value = max;
+                }
                 break;
             }
             case MENU_LIST_SCAN_REV:
                 if (value == 0) {
-                    written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "STOP");
-                }
-                else if (value < 81) {
+                    if (!UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, "STOP")) {
+                        gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                        value = max;
+                    }
+                } else if (value < 81) {
                     const uint32_t ms = (uint32_t)value * 250U;
                     const uint32_t seconds = ms / 1000U;
                     const uint32_t millis = ms % 1000U;
-                    written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "CAR %02us:%03ums",
-                        (unsigned int)seconds, (unsigned int)millis);
-                }
-                else {
+                    if (!UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, "CAR ") ||
+                        !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, seconds, 2) ||
+                        !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 's') ||
+                        !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, ':') ||
+                        !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, millis, 3) ||
+                        !UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, "ms")) {
+                        gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                        value = max;
+                    }
+                } else {
                     const uint32_t seconds = (uint32_t)(value - 80) * 5U;
                     const uint32_t minutes = seconds / 60U;
                     const uint32_t secs = seconds % 60U;
-                    written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "OUT %02um:%02us",
-                        (unsigned int)minutes, (unsigned int)secs);
+                    if (!UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, "OUT ") ||
+                        !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, minutes, 2) ||
+                        !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 'm') ||
+                        !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, ':') ||
+                        !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, secs, 2) ||
+                        !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 's')) {
+                        gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                        value = max;
+                    }
                 }
                 break;
             case MENU_LIST_DCS:
             {
                 const uint32_t count = ARRAY_SIZE(DCS_Options);
                 if (value == 0) {
-                    written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%s", gSubMenu_OFF_ON[0]);
-                }
-                else if ((uint32_t)value <= count) {
-                    written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "D%03oN",
-                        DCS_Options[value - 1]);
-                }
-                else if ((uint32_t)(value - (int32_t)count) <= count) {
-                    written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "D%03oI",
-                        DCS_Options[value - 1 - (int32_t)count]);
-                }
-                else {
-                    written = 0;
+                    if (!UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, gSubMenu_OFF_ON[0])) {
+                        gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                        value = max;
+                    }
+                } else if ((uint32_t)value <= count) {
+                    if (!UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 'D') ||
+                        !UI_MENU_AppendOctalWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out,
+                                                  DCS_Options[value - 1], 3) ||
+                        !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 'N')) {
+                        gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                        value = max;
+                    }
+                } else if ((uint32_t)(value - (int32_t)count) <= count) {
+                    if (!UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 'D') ||
+                        !UI_MENU_AppendOctalWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out,
+                                                  DCS_Options[value - 1 - (int32_t)count], 3) ||
+                        !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, 'I')) {
+                        gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                        value = max;
+                    }
                 }
                 break;
             }
@@ -823,29 +968,31 @@ static const char* UI_MENU_BuildList(UI_MENU_ListMode mode, int32_t min, int32_t
             {
                 const uint32_t count = ARRAY_SIZE(CTCSS_Options);
                 if (value == 0) {
-                    written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%s", gSubMenu_OFF_ON[0]);
-                }
-                else if ((uint32_t)value <= count) {
-                    written = snprintf(&gMenuListBuffer[out], sizeof(gMenuListBuffer) - out, "%u.%uHz",
-                        CTCSS_Options[value - 1] / 10U, CTCSS_Options[value - 1] % 10U);
-                }
-                else {
-                    written = 0;
+                    if (!UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, gSubMenu_OFF_ON[0])) {
+                        gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                        value = max;
+                    }
+                } else if ((uint32_t)value <= count) {
+                    const uint16_t tone = CTCSS_Options[value - 1];
+                    if (!UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, tone / 10U, 0) ||
+                        !UI_MENU_AppendChar(gMenuListBuffer, sizeof(gMenuListBuffer), &out, '.') ||
+                        !UI_MENU_AppendUIntWidth(gMenuListBuffer, sizeof(gMenuListBuffer), &out, tone % 10U, 1) ||
+                        !UI_MENU_AppendStr(gMenuListBuffer, sizeof(gMenuListBuffer), &out, "Hz")) {
+                        gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
+                        value = max;
+                    }
                 }
                 break;
             }
             default:
-                written = 0;
                 break;
             }
         }
 
-        if (written <= 0 || (size_t)written >= sizeof(gMenuListBuffer) - out) {
+        if (out + 1 >= sizeof(gMenuListBuffer)) {
             gMenuListBuffer[sizeof(gMenuListBuffer) - 1] = '\0';
             break;
         }
-
-        out += (size_t)written;
 
         if (value < max && out + 1 < sizeof(gMenuListBuffer)) {
             gMenuListBuffer[out++] = '\n';
@@ -960,8 +1107,10 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
         return UI_MENU_JoinFixedList((const char*)gSubMenu_SET_KEY, sizeof(gSubMenu_SET_KEY[0]), ARRAY_SIZE(gSubMenu_SET_KEY));
 #endif
 #endif
+#ifdef ENABLE_SCANLIST
     case MENU_S_LIST:
         return UI_MENU_JoinFixedList((const char*)gSubMenu_SLIST, sizeof(gSubMenu_SLIST[0]), ARRAY_SIZE(gSubMenu_SLIST));
+#endif
     case MENU_F1SHRT:
     case MENU_F1LONG:
     case MENU_F2SHRT:
@@ -976,9 +1125,11 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
 #endif
     case MENU_BCL:
     case MENU_BEEP:
+#ifdef ENABLE_SCANLIST
     case MENU_S_ADD1:
     case MENU_S_ADD2:
     case MENU_S_ADD3:
+#endif
     case MENU_STE:
     case MENU_D_ST:
 #ifdef ENABLE_DTMF_CALLING
@@ -989,11 +1140,11 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
     case MENU_NOAA_S:
 #endif
 #ifndef ENABLE_FEAT_F4HWN
-    case MENU_350TX:
-    case MENU_200TX:
-    case MENU_500TX:
+    //case MENU_350TX:
+    //case MENU_200TX:
+    //case MENU_500TX:
 #endif
-    case MENU_350EN:
+    //case MENU_350EN:
 
 #ifdef ENABLE_FEAT_F4HWN
     case MENU_SET_TMR:
@@ -1055,7 +1206,8 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
         size_t len = strnlen(buf, sizeof(gMenuListBuffer));
         if (valid && !gAskForConfirmation) {
             const uint32_t frequency = SETTINGS_FetchChannelFrequency(gSubMenuSelection);
-            len += snprintf(&buf[len], sizeof(gMenuListBuffer) - len, "\n%u.%05u", frequency / 100000, frequency % 100000);
+            len += snprintf(&buf[len], sizeof(gMenuListBuffer) - len,
+                            "\n%u.%05u", frequency / 100000, frequency % 100000);
         }
         char* name = NULL;
         SETTINGS_FetchChannelName(name, gSubMenuSelection);
@@ -1074,26 +1226,34 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
     break;*/
 
     case MENU_UPCODE:
-        snprintf(buf, sizeof(gMenuListBuffer), "%.8s\n%.8s", gEeprom.DTMF_UP_CODE, gEeprom.DTMF_UP_CODE + 8);
+        memcpy(buf, gEeprom.DTMF_UP_CODE, 8);
+        buf[8] = '\n';
+        memcpy(buf + 9, gEeprom.DTMF_UP_CODE + 8, 8);
+        buf[17] = '\0';
         break;
 
     case MENU_DWCODE:
-        snprintf(buf, sizeof(gMenuListBuffer), "%.8s\n%.8s", gEeprom.DTMF_DOWN_CODE, gEeprom.DTMF_DOWN_CODE + 8);
+        memcpy(buf, gEeprom.DTMF_DOWN_CODE, 8);
+        buf[8] = '\n';
+        memcpy(buf + 9, gEeprom.DTMF_DOWN_CODE + 8, 8);
+        buf[17] = '\0';
         break;
 
     case MENU_D_PRE:
         return UI_MENU_BuildList(MENU_LIST_NUMERIC, mMin, mMax, 0, 0U, NULL, NULL, NULL, "*10ms");
         break;
+#ifdef ENABLE_SCANLIST
     case MENU_SLIST1:
     case MENU_SLIST2:
     case MENU_SLIST3:
         if (gSubMenuSelection < 0) {
-            snprintf(buf, sizeof(gMenuListBuffer), "NULL");
+            strcpy(buf, "NULL");
         }
         else {
             UI_GenerateChannelStringEx(buf, true, gSubMenuSelection);
         }
         break;
+#endif
         // ************************************************************************************
     default:
         snprintf(buf, sizeof(gMenuListBuffer), "* %ld *", (long)gSubMenuSelection);
@@ -1153,12 +1313,15 @@ void UI_DisplayMenu(void)
     else if (gIsInSubMenu) {
         // gSubMenuSelection
         const int current_menu_id = UI_MENU_GetCurrentMenuId();
+    #ifdef ENABLE_SCANLIST
         if (current_menu_id == MENU_SLIST1 ||
             current_menu_id == MENU_SLIST2 ||
             current_menu_id == MENU_SLIST3) {
             UI_MENU_DrawScanListPopup();
         }
-        else {
+        else
+    #endif
+        {
             UI_DrawPopupWindow(36, 6, 90, 52, UI_SelectionList_GetStringLine(&menuList));
             setSubMenu();
             UI_SelectionList_Draw(&subMenuList, 20, NULL);

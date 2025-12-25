@@ -504,7 +504,8 @@ void UI_DisplayMain(void)
     const unsigned int code_type = pConfigRX->CodeType;
     
     if ( pConfigRX->CodeType == CODE_TYPE_OFF && pConfigTX->CodeType == CODE_TYPE_OFF ) {        
-        UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, false, false, "%d.%02uK", vfoInfoA->StepFrequency / 100, vfoInfoA->StepFrequency % 100);
+        UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, false, false,
+                       "%d.%02uK", vfoInfoA->StepFrequency / 100, vfoInfoA->StepFrequency % 100);
     } else {        
         // RX code
         if ( pConfigRX->CodeType == CODE_TYPE_CONTINUOUS_TONE )

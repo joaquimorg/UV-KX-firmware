@@ -386,12 +386,10 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
     // fix previously set incorrect band
     band = FREQUENCY_GetBand(frequency);
 
-    if (frequency < frequencyBandTable[band].lower)
-        frequency = frequencyBandTable[band].lower;
-    else if (frequency > frequencyBandTable[band].upper)
-        frequency = frequencyBandTable[band].upper;
-    else if (channel >= FREQ_CHANNEL_FIRST)
+    frequency = FREQUENCY_ClampToBand(frequency, band);
+    if (channel >= FREQ_CHANNEL_FIRST) {
         frequency = FREQUENCY_RoundToStep(frequency, pVfo->StepFrequency);
+    }
 
     pVfo->freq_config_RX.Frequency = frequency;
 

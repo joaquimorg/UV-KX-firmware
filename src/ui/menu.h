@@ -24,7 +24,7 @@
 #include "settings.h"
 
 typedef struct {
-    const char  name[11];    // up to 10 characters (padded) for clearer labels
+    const char  name[8];    // up to 10 characters (padded) for clearer labels
     uint8_t     menu_id;
 } t_menu_item;
 

@@ -228,10 +228,8 @@ static void DrawPixel(int x, int y)
     u8g2_DrawPixel(gUiCtx.lcd, (u8g2_uint_t)x, (u8g2_uint_t)y);
 }
 
-static void DrawVLine(int sy, int ey, int nx, bool fill)
+static void DrawVLine(int sy, int ey, int nx)
 {
-    (void)fill;
-
     if (!Spectrum_IsDisplayReady())
         return;
 
@@ -304,7 +302,7 @@ static const BK4819_REGISTER_t registers_to_save[] = {
     BK4819_REG_7E,
 };
 
-static uint16_t registers_stack[sizeof(registers_to_save)];
+static uint16_t registers_stack[ARRAY_SIZE(registers_to_save)];
 
 static void BackupRegisters()
 {
@@ -964,7 +962,7 @@ uint8_t Rssi2Y(uint16_t rssi)
             {
                 for (uint8_t xx = ox; xx < x; xx++)
                 {
-                    DrawVLine(Rssi2Y(rssi), DrawingEndY, xx, true);
+                    DrawVLine(Rssi2Y(rssi), DrawingEndY, xx);
                 }
             }
             ox = x;
@@ -978,7 +976,7 @@ uint8_t Rssi2Y(uint16_t rssi)
             uint16_t rssi = rssiHistory[x >> settings.stepsCount];
             if (rssi != RSSI_MAX_VALUE)
             {
-                DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);
+                DrawVLine(Rssi2Y(rssi), DrawingEndY, x);
             }
         }
     }
@@ -992,11 +990,6 @@ static void DrawStatus()
 #else
     sprintf(String, "%d/%d", settings.dbMin, settings.dbMax);
 #endif
-    if (Spectrum_IsDisplayReady()) {
-        UI_SetFont(UI_FONT_5_TR);
-        UI_DrawString(UI_TEXT_ALIGN_LEFT, 0, 0, 6, true, false, false, String);
-    }
-
     BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4],
                              &gBatteryCurrent);
 
@@ -1006,11 +999,14 @@ static void DrawStatus()
 
     unsigned perc = BATTERY_VoltsToPercent(voltage);
 
-    if (Spectrum_IsDisplayReady()) {
-        UI_DrawBatteryIcon(perc, 112, 0);
-        UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 110, 6, true, false, false,
-                       "%u%%", perc);
-    }
+    if (!Spectrum_IsDisplayReady())
+        return;
+
+    UI_SetFont(UI_FONT_5_TR);
+    UI_DrawString(UI_TEXT_ALIGN_LEFT, 0, 0, 6, true, false, false, String);
+    UI_DrawBatteryIcon(perc, 112, 0);
+    UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 110, 6, true, false, false, "%u%%",
+                   perc);
 }
 
 #ifdef ENABLE_FEAT_F4HWN_SPECTRUM
@@ -1052,8 +1048,10 @@ static void DrawF(uint32_t f)
         return;
 
     UI_SetFont(UI_FONT_8_TR);
-    UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 0, 0, 10, true, false, false,
-                   "%u.%05u", f / 100000, f % 100000);
+    {
+        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 0, 0, 10, true, false, false,
+                       "%u.%05u", f / 100000, f % 100000);
+    }
 
     UI_SetFont(UI_FONT_5_TR);
     UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 127, 10, true, false, false,
@@ -1068,6 +1066,9 @@ static void DrawF(uint32_t f)
 
 static void DrawNums()
 {
+    if (!Spectrum_IsDisplayReady())
+        return;
+
     if (currentState == SPECTRUM)
     {
 #ifdef ENABLE_SCAN_RANGES
@@ -1080,40 +1081,31 @@ static void DrawNums()
         {
             sprintf(String, "%ux", GetStepsCount());
         }
-        if (Spectrum_IsDisplayReady()) {
-            UI_SetFont(UI_FONT_5_TR);
-            UI_DrawString(UI_TEXT_ALIGN_LEFT, 0, 0, 48, true, false, false,
-                          String);
-            UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 0, 0, 56, true, false, false,
-                           "%u.%02uk", GetScanStep() / 100,
-                           GetScanStep() % 100);
-        }
+        UI_SetFont(UI_FONT_5_TR);
+        UI_DrawString(UI_TEXT_ALIGN_LEFT, 0, 0, 48, true, false, false, String);
+        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 0, 0, 56, true, false, false,
+                       "%u.%02uk", GetScanStep() / 100, GetScanStep() % 100);
     }
 
     if (IsCenterMode())
     {
-        if (Spectrum_IsDisplayReady()) {
-            UI_SetFont(UI_FONT_5_TR);
-            UI_DrawStringf(UI_TEXT_ALIGN_CENTER, 0, 127, 63, true, false, false,
-                           "%u.%05u %u.%02uk", currentFreq / 100000,
-                           currentFreq % 100000,
-                           settings.frequencyChangeStep / 100,
-                           settings.frequencyChangeStep % 100);
-        }
+        UI_SetFont(UI_FONT_5_TR);
+        UI_DrawStringf(UI_TEXT_ALIGN_CENTER, 0, 127, 63, true, false, false,
+                       "%u.%05u %u.%02uk", currentFreq / 100000,
+                       currentFreq % 100000,
+                       settings.frequencyChangeStep / 100,
+                       settings.frequencyChangeStep % 100);
     }
     else
     {
-        if (Spectrum_IsDisplayReady()) {
-            UI_SetFont(UI_FONT_5_TR);
-            UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 0, 0, 63, true, false, false,
-                           "%u.%05u", GetFStart() / 100000,
-                           GetFStart() % 100000);
-            UI_DrawStringf(UI_TEXT_ALIGN_CENTER, 0, 127, 63, true, false, false,
-                           "%u.%02uk", settings.frequencyChangeStep / 100,
-                           settings.frequencyChangeStep % 100);
-            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 127, 63, true, false, false,
-                           "%u.%05u", GetFEnd() / 100000, GetFEnd() % 100000);
-        }
+        UI_SetFont(UI_FONT_5_TR);
+        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 0, 0, 63, true, false, false,
+                       "%u.%05u", GetFStart() / 100000, GetFStart() % 100000);
+        UI_DrawStringf(UI_TEXT_ALIGN_CENTER, 0, 127, 63, true, false, false,
+                       "%u.%02uk", settings.frequencyChangeStep / 100,
+                       settings.frequencyChangeStep % 100);
+        UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 127, 63, true, false, false,
+                       "%u.%05u", GetFEnd() / 100000, GetFEnd() % 100000);
     }
 }
 
@@ -1133,12 +1125,13 @@ static void DrawTicks()
     if (!Spectrum_IsDisplayReady())
         return;
 
-    uint32_t f = GetFStart();
-    uint32_t span = GetFEnd() - GetFStart();
+    const uint32_t f_start = GetFStart();
+    uint32_t f = f_start;
+    const uint32_t span = GetFEnd() - f_start;
     uint32_t step = span / 128;
     for (uint8_t i = 0; i < 128; i += (1 << settings.stepsCount))
     {
-        f = GetFStart() + span * i / 128;
+        f = f_start + span * i / 128;
         uint8_t h = 1;
         if ((f % 10000) < step)
             h = 2;
@@ -1147,18 +1140,18 @@ static void DrawTicks()
         if ((f % 100000) < step)
             h = 5;
 
-        DrawVLine(DrawingEndY + 1, DrawingEndY + h, i, true);
+        DrawVLine(DrawingEndY + 1, DrawingEndY + h, i);
     }
 
     // center
     if (IsCenterMode())
     {
-        DrawVLine(DrawingEndY + 1, DrawingEndY + 5, 64, true);
+        DrawVLine(DrawingEndY + 1, DrawingEndY + 5, 64);
     }
     else
     {
-        DrawVLine(DrawingEndY + 1, DrawingEndY + 5, 0, true);
-        DrawVLine(DrawingEndY + 1, DrawingEndY + 5, 127, true);
+        DrawVLine(DrawingEndY + 1, DrawingEndY + 5, 0);
+        DrawVLine(DrawingEndY + 1, DrawingEndY + 5, 127);
     }
 }
 
@@ -1170,7 +1163,7 @@ static void DrawArrow(uint8_t x)
         if (!(v & 128))
         {
             uint8_t h = (uint8_t)(3 - my_abs(i));
-            DrawVLine(DrawingEndY + 6, (uint8_t)(DrawingEndY + 6 + h), v, true);
+            DrawVLine(DrawingEndY + 6, (uint8_t)(DrawingEndY + 6 + h), v);
         }
     }
 }

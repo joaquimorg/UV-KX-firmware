@@ -4,7 +4,7 @@
 
 ENABLE_REMOTE_CONTROL			?= 0
 ENABLE_UART_DEBUG			  	?= 0
-ENABLE_TXRX_MSG                 ?= 0
+ENABLE_TXRX_MSG                 ?= 0 ## todo
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -20,7 +20,7 @@ ENABLE_TX1750                   ?= 1
 ENABLE_DTMF_CALLING             ?= 0
 
 # ---- CUSTOM MODS ----
-ENABLE_SPECTRUM                 ?= 1
+ENABLE_SPECTRUM                 ?= 1 ## uncompleted
 ENABLE_KEEP_MEM_NAME            ?= 1
 ENABLE_WIDE_RX                  ?= 1
 ENABLE_TX_WHEN_AM               ?= 0
@@ -33,12 +33,13 @@ ENABLE_AM_FIX                   ?= 1
 ENABLE_SQUELCH_MORE_SENSITIVE   ?= 1
 ENABLE_FASTER_CHANNEL_SCAN      ?= 1
 ENABLE_RSSI_BAR                 ?= 1
-ENABLE_AUDIO_BAR                ?= 0
+ENABLE_AUDIO_BAR                ?= 0 ## uncompleted
 ENABLE_COPY_CHAN_TO_VFO         ?= 0
 ENABLE_REDUCE_LOW_MID_TX_POWER  ?= 0
 ENABLE_BYP_RAW_DEMODULATORS     ?= 0
 ENABLE_BLMIN_TMP_OFF            ?= 0
 ENABLE_SCAN_RANGES              ?= 1
+ENABLE_SCANLIST                 ?= 0 ## uncompleted
 
 # ---- CONTRIB MODS ----
 
@@ -48,13 +49,13 @@ ENABLE_EXTRA_UART_CMD           ?= 0
 # ---- F4HWN MODS ----
 
 ENABLE_FEAT_F4HWN               ?= 1
-ENABLE_FEAT_F4HWN_SPECTRUM      ?= 1
-ENABLE_FEAT_F4HWN_RX_TX_TIMER   ?= 1
+ENABLE_FEAT_F4HWN_SPECTRUM      ?= 1 ## uncompleted
+ENABLE_FEAT_F4HWN_RX_TX_TIMER   ?= 1 ## uncompleted
 ENABLE_FEAT_F4HWN_SLEEP         ?= 1
 ENABLE_FEAT_F4HWN_RESUME_STATE  ?= 0
 ENABLE_FEAT_F4HWN_NARROWER      ?= 1
 ENABLE_FEAT_F4HWN_CTR           ?= 1
-ENABLE_FEAT_F4HWN_RESCUE_OPS    ?= 0
+ENABLE_FEAT_F4HWN_RESCUE_OPS    ?= 0 ## not implemented
 ENABLE_FEAT_F4HWN_VOL           ?= 0
 ENABLE_FEAT_F4HWN_RESET_CHANNEL ?= 0
 ENABLE_FEAT_F4HWN_PMR           ?= 0
@@ -170,7 +171,7 @@ ASMFLAGS += -mcpu=cortex-m0
 # C flags
 CCFLAGS = 
 CCFLAGS += -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -MMD -g
-CCFLAGS += -flto=1
+#CCFLAGS += -flto=1
 CCFLAGS += -ftree-vectorize -funroll-loops
 CCFLAGS += -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas 
 #-Wunused-parameter -Wconversion
@@ -178,6 +179,11 @@ CCFLAGS += -fno-math-errno -pipe -ffunction-sections -fdata-sections -ffast-math
 CCFLAGS += -fsingle-precision-constant -finline-functions-called-once
 CCFLAGS += -Os -g3 -fno-exceptions -fno-non-call-exceptions -fno-delete-null-pointer-checks
 CCFLAGS += -DARMCM0
+
+ifeq ($(DISABLE_LTO),1)
+	CCFLAGS += -fno-lto
+	LDFLAGS += -fno-lto
+endif
 
 # C++ flags
 #CXXFLAGS =
@@ -313,6 +319,9 @@ endif
 ifeq ($(ENABLE_SCAN_RANGES),1)
 	CCFLAGS  += -DENABLE_SCAN_RANGES
 endif
+ifeq ($(ENABLE_SCANLIST),1)
+	CCFLAGS  += -DENABLE_SCANLIST
+endif
 ifeq ($(ENABLE_DTMF_CALLING),1)
 	CCFLAGS  += -DENABLE_DTMF_CALLING
 endif
@@ -398,8 +407,26 @@ INCLUDE_PATH += $(EXTERNAL_LIB)/printf/.
 
 #------------------------------------------------------------------------------
 # u8g2 Library source and object files
-
-U8G2_SRCS = $(wildcard $(EXTERNAL_LIB)/U8G2/csrc/*.c)
+# Minimal set for ST7565 128x64 (full buffer) + string helpers.
+U8G2_SRCS = \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_bitmap.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_box.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_buffer.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_cleardisplay.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_d_memory.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_d_setup.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_font.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_hvline.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_ll_hvline.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8g2_setup.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8x8_8x8.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8x8_byte.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8x8_cad.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8x8_display.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8x8_gpio.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8x8_setup.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8x8_string.c \
+	$(EXTERNAL_LIB)/U8G2/csrc/u8x8_d_st7565.c
 U8G2_OBJS = $(addprefix $(BUILD)/, $(U8G2_SRCS:.c=.o))
 
 #U8G2_SRCSXX = $(wildcard $(EXTERNAL_LIB)/U8G2/cppsrc/*.cpp)

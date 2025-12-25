@@ -124,6 +124,32 @@ FREQUENCY_Band_t FREQUENCY_GetBand(uint32_t Frequency)
     return BAND1_50MHz;
 }
 
+uint32_t FREQUENCY_ClampToValid(uint32_t freq)
+{
+    if (freq < frequencyBandTable[0].lower) {
+        return frequencyBandTable[0].lower;
+    }
+    if (freq > frequencyBandTable[BAND_N_ELEM - 1].upper) {
+        return frequencyBandTable[BAND_N_ELEM - 1].upper;
+    }
+    if (freq >= BX4819_band1.upper && freq < BX4819_band2.lower) {
+        const uint32_t center = (BX4819_band1.upper + BX4819_band2.lower) / 2U;
+        return (freq < center) ? BX4819_band1.upper : BX4819_band2.lower;
+    }
+    return freq;
+}
+
+uint32_t FREQUENCY_ClampToBand(uint32_t freq, FREQUENCY_Band_t band)
+{
+    if (freq < frequencyBandTable[band].lower) {
+        return frequencyBandTable[band].lower;
+    }
+    if (freq > frequencyBandTable[band].upper) {
+        return frequencyBandTable[band].upper;
+    }
+    return freq;
+}
+
 uint8_t FREQUENCY_CalculateOutputPower(uint8_t TxpLow, uint8_t TxpMid, uint8_t TxpHigh, int32_t LowerLimit, int32_t Middle, int32_t UpperLimit, int32_t Frequency)
 {
     if (Frequency <= LowerLimit)
