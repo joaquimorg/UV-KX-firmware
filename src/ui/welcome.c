@@ -57,7 +57,8 @@ void UI_DisplayWelcome(void)
     UI_SetFont(FONT_5_TR);
     UI_DrawString(UI_TEXT_ALIGN_LEFT, 110, 0, 42, true, true, false, "64");
     UI_DrawString(UI_TEXT_ALIGN_LEFT, 110, 0, 51, true, true, false, "YES");
-
+    
+    UI_SetBlackColor();
     UI_DrawBox(0, 57, 128, 7);
     UI_DrawString(UI_TEXT_ALIGN_CENTER, 0, 128, 63, false, false, false, AUTHOR_STRING_2 " - " VERSION_STRING_2 " - " EDITION_STRING " EDITION");
 
