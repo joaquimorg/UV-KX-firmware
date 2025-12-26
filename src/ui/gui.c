@@ -279,8 +279,24 @@ void UI_DrawPopupWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const char *
     UI_SetWhiteColor();
     u8g2_DrawBox(gUiCtx.lcd, x - 1, y - 1, w + 3, h + 4);
     UI_SetBlackColor();
-    u8g2_DrawFrame(gUiCtx.lcd, x, y, w, (uint8_t)(h + 1));
     u8g2_DrawFrame(gUiCtx.lcd, x, y, (uint8_t)(w + 1), (uint8_t)(h + 2));
+    u8g2_DrawFrame(gUiCtx.lcd, x, y, w, (uint8_t)(h + 1));
+
+    // manual rounded corners (no u8g2_circle)
+    u8g2_SetDrawColor(gUiCtx.lcd, UI_WHITE);
+    u8g2_DrawPixel(gUiCtx.lcd, x, y);
+    u8g2_DrawPixel(gUiCtx.lcd, x + 1, y);
+    u8g2_DrawPixel(gUiCtx.lcd, x, y + 1);
+    u8g2_DrawPixel(gUiCtx.lcd, (uint8_t)(x + w), y);
+    u8g2_DrawPixel(gUiCtx.lcd, (uint8_t)(x + w - 1), y);
+    u8g2_DrawPixel(gUiCtx.lcd, (uint8_t)(x + w), (uint8_t)(y + 1));
+    u8g2_DrawPixel(gUiCtx.lcd, x, (uint8_t)(y + h + 1));
+    u8g2_DrawPixel(gUiCtx.lcd, x + 1, (uint8_t)(y + h + 1));
+    u8g2_DrawPixel(gUiCtx.lcd, x, (uint8_t)(y + h));
+    u8g2_DrawPixel(gUiCtx.lcd, (uint8_t)(x + w), (uint8_t)(y + h + 1));
+    u8g2_DrawPixel(gUiCtx.lcd, (uint8_t)(x + w - 1), (uint8_t)(y + h + 1));
+    u8g2_DrawPixel(gUiCtx.lcd, (uint8_t)(x + w), (uint8_t)(y + h));
+    u8g2_SetDrawColor(gUiCtx.lcd, UI_BLACK);
 
     u8g2_DrawBox(gUiCtx.lcd, (uint8_t)(x + 1), (uint8_t)(y + 1), (uint8_t)(w - 1), 6);
 
