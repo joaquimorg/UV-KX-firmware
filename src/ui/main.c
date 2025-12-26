@@ -22,6 +22,9 @@
 #ifdef ENABLE_AM_FIX
     #include "am_fix.h"
 #endif
+#ifdef ENABLE_MESSENGER
+	#include "app/messenger.h"
+#endif
 #include "bitmaps.h"
 #include "board.h"
 #include "driver/bk4819.h"
@@ -678,6 +681,13 @@ void UI_DisplayMain(void)
     else if (gMute) {
         UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 97, 56, true, true, false, "M");
     }
+
+    #ifdef ENABLE_MESSENGER	
+    if (hasNewMessage)
+    {
+        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 90, 56, true, false, false, "MSG");
+    }
+    #endif
 
     DisplayRSSIBar(false);
 

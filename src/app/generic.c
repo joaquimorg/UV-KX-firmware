@@ -198,7 +198,9 @@ void GENERIC_Key_PTT(bool bKeyPressed)
         gDTMF_ReplyState = DTMF_REPLY_ANI;
     }
 
-    DTMF_clear_input_box();
+        #ifdef ENABLE_DTMF
+        DTMF_clear_input_box();
+        #endif
 
 start_tx:
     // request start TX

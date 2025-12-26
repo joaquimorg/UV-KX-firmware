@@ -41,8 +41,8 @@ void AUDIO_PlayBeep(BEEP_Type_t Beep)
     if (Beep != BEEP_880HZ_60MS_DOUBLE_BEEP &&
         Beep != BEEP_500HZ_60MS_DOUBLE_BEEP &&
         Beep != BEEP_440HZ_500MS &&
-#ifdef ENABLE_DTMF_CALLING
         Beep != BEEP_880HZ_200MS &&
+#ifdef ENABLE_DTMF_CALLING        
         Beep != BEEP_880HZ_500MS &&
 #endif
 #ifdef ENABLE_FEAT_F4HWN
@@ -96,8 +96,8 @@ void AUDIO_PlayBeep(BEEP_Type_t Beep)
             ToneFrequency = 440;
             break;
         case BEEP_880HZ_60MS_DOUBLE_BEEP:
-#ifndef ENABLE_FEAT_F4HWN
         case BEEP_880HZ_200MS:
+#ifndef ENABLE_FEAT_F4HWN        
         case BEEP_880HZ_500MS:
 #endif
             ToneFrequency = 880;
@@ -157,8 +157,8 @@ void AUDIO_PlayBeep(BEEP_Type_t Beep)
             break;
 #endif
         case BEEP_440HZ_500MS:
-#ifndef ENABLE_FEAT_F4HWN
         case BEEP_880HZ_200MS:
+#ifndef ENABLE_FEAT_F4HWN        
             BK4819_ExitTxMute();
             Duration = 200;
             break;

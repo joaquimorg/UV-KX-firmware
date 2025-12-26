@@ -23,6 +23,9 @@
 #ifdef ENABLE_FMRADIO
     #include "app/fm.h"
 #endif
+#ifdef ENABLE_MESSENGER
+	#include "app/messenger.h"
+#endif
 #include "app/generic.h"
 #include "app/main.h"
 #include "app/scanner.h"
@@ -715,6 +718,14 @@ static void MAIN_Key_MENU(bool bKeyPressed, bool bKeyHeld)
     }
 
     if (!bKeyPressed && !gDTMF_InputMode) { // menu key released
+
+#ifdef ENABLE_MESSENGER
+		if (gWasFKeyPressed) {			
+			hasNewMessage = 0;
+			gRequestDisplayScreen = DISPLAY_MSG;
+			return;
+		}
+#endif
         const bool bFlag = !gInputBoxIndex;
         gInputBoxIndex   = 0;
 

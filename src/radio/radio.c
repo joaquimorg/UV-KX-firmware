@@ -22,6 +22,9 @@
 #ifdef ENABLE_FMRADIO
     #include "app/fm.h"
 #endif
+#ifdef ENABLE_MESSENGER
+	#include "app/messenger.h"
+#endif
 #include "audio.h"
 #include "dp32g030/gpio.h"
 #include "dcs.h"
@@ -36,6 +39,10 @@
 #include "radio.h"
 #include "settings.h"
 #include "ui/menu.h"
+
+#if defined(ENABLE_UART)
+	#include "driver/uart.h"
+#endif
 
 VFO_Info_t    *gTxVfo;
 VFO_Info_t    *gRxVfo;
@@ -857,12 +864,21 @@ void RADIO_SetupRegisters(bool switchToForeground)
 
     // RX expander
     BK4819_SetCompander((gRxVfo->Modulation == MODULATION_FM && gRxVfo->Compander >= 2) ? gRxVfo->Compander : 0);
-
+    #ifdef ENABLE_DTMF
     BK4819_EnableDTMF();
+    #else
+    BK4819_DisableDTMF();
+    #endif
     InterruptMask |= BK4819_REG_3F_DTMF_5TONE_FOUND;
 
     RADIO_SetupAGC(gRxVfo->Modulation == MODULATION_AM, false);
 
+#ifdef ENABLE_MESSENGER
+	MSG_EnableRX(true);
+	InterruptMask |= BK4819_REG_3F_FSK_RX_SYNC | BK4819_REG_3F_FSK_RX_FINISHED | BK4819_REG_3F_FSK_FIFO_ALMOST_FULL | BK4819_REG_3F_FSK_TX_FINISHED;
+    //UART_printf("\nFSK RX");
+#endif
+    
     // enable/disable BK4819 selected interrupts
     BK4819_WriteRegister(BK4819_REG_3F, InterruptMask);
 

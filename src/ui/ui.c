@@ -30,6 +30,9 @@
 #ifdef ENABLE_FMRADIO
     #include "ui/fmradio.h"
 #endif
+#ifdef ENABLE_MESSENGER
+	#include "ui/messenger.h"
+#endif
 #ifdef ENABLE_REGA
     #include "app/rega.h"
 #endif
@@ -58,6 +61,10 @@ void (*UI_DisplayFunctions[])(void) = {
     [DISPLAY_FM] = &UI_DisplayFM,
 #endif
 
+#ifdef ENABLE_MESSENGER
+	[DISPLAY_MSG] = &UI_DisplayMSG,
+#endif
+
 #ifdef ENABLE_AIRCOPY
     [DISPLAY_AIRCOPY] = &UI_DisplayAircopy,
 #endif
@@ -83,7 +90,9 @@ void GUI_SelectNextDisplay(GUI_DisplayType_t Display)
 
     if (gScreenToDisplay != Display)
     {
+        #ifdef ENABLE_DTMF
         DTMF_clear_input_box();
+        #endif
 
         gInputBoxIndex       = 0;
         gIsInSubMenu         = false;

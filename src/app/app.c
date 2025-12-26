@@ -33,6 +33,9 @@
 #ifdef ENABLE_FMRADIO
     #include "app/fm.h"
 #endif
+#ifdef ENABLE_MESSENGER
+	#include "app/messenger.h"
+#endif
 #include "app/generic.h"
 #include "app/main.h"
 #include "app/menu.h"
@@ -79,6 +82,11 @@
     #include "screenshot.h"
 #endif
 
+#ifdef ENABLE_MESSENGER_NOTIFICATION
+bool gPlayMSGRing = false;
+uint8_t gPlayMSGRingCount = 0;
+#endif
+
 static bool flagSaveVfo;
 static bool flagSaveSettings;
 static bool flagSaveChannel;
@@ -93,6 +101,10 @@ void (*ProcessKeysFunctions[])(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld) 
 
 #ifdef ENABLE_FMRADIO
     [DISPLAY_FM] = &FM_ProcessKeys,
+#endif
+
+#ifdef ENABLE_MESSENGER
+	[DISPLAY_MSG] = &MSG_ProcessKeys,
 #endif
 
 #ifdef ENABLE_AIRCOPY
@@ -799,6 +811,9 @@ static void CheckRadioInterrupts(void)
             AIRCOPY_StorePacket();
         }
 #endif
+#ifdef ENABLE_MESSENGER
+		MSG_StorePacket(interrupts.__raw);
+#endif
     }
 }
 
@@ -1357,6 +1372,10 @@ void APP_TimeSlice10ms(void)
     gNextTimeslice = false;
     gFlashLightBlinkCounter++;
 
+#ifdef ENABLE_MESSENGER
+	keyTickCounter++;
+#endif
+
 #ifdef ENABLE_AM_FIX
     if (gRxVfo->Modulation == MODULATION_AM) {
         AM_fix_10ms(gEeprom.RX_VFO);
@@ -1507,7 +1526,9 @@ void cancelUserInputModes(void)
 {
     if (gDTMF_InputMode || gDTMF_InputBox_Index > 0)
     {
+        #ifdef ENABLE_DTMF
         DTMF_clear_input_box();
+        #endif
         gBeepToPlay           = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
         gRequestDisplayScreen = DISPLAY_MAIN;
         gUpdateDisplay        = true;
@@ -1529,6 +1550,27 @@ void APP_TimeSlice500ms(void)
 {
     gNextTimeslice_500ms = false;
     bool exit_menu = false;
+
+#ifdef ENABLE_MESSENGER_NOTIFICATION
+	if (gPlayMSGRing) {
+		gPlayMSGRingCount = 5;
+		gPlayMSGRing = false;
+	}
+	if (gPlayMSGRingCount > 0) {
+		AUDIO_PlayBeep(BEEP_880HZ_200MS);
+		gPlayMSGRingCount--;
+	}
+#endif
+
+#ifdef ENABLE_MESSENGER
+	if (hasNewMessage > 0) {
+		if (hasNewMessage == 1) {
+			hasNewMessage = 2;
+		} else if (hasNewMessage == 2) {
+			hasNewMessage = 1;
+		}
+	}
+#endif
 
     // Skipped authentic device check
 
@@ -1728,7 +1770,9 @@ void APP_TimeSlice500ms(void)
                 RADIO_SetupRegisters(true);
             }
 */
+            #ifdef ENABLE_DTMF
             DTMF_clear_input_box();
+            #endif
 
             gWasFKeyPressed  = false;
             gInputBoxIndex   = 0;

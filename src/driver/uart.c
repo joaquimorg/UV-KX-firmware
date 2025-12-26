@@ -20,6 +20,7 @@
 #include "dp32g030/syscon.h"
 #include "dp32g030/uart.h"
 #include "driver/uart.h"
+#include "printf.h"
 
 static bool UART_IsLogEnabled;
 uint8_t UART_DMA_Buffer[256];
@@ -116,3 +117,17 @@ void UART_LogSend(const void *pBuffer, uint32_t Size)
         return false;
     }
 #endif
+
+void UART_printf(const char *str, ...)
+{
+	char text[256];
+	int  len;
+	
+	va_list va;
+	va_start(va, str);
+	len = vsnprintf(text, sizeof(text), str, va);
+	va_end(va);
+
+	UART_Send(text, len);
+	//UART_Send(text, strlen(text));
+}
