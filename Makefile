@@ -5,6 +5,7 @@
 ENABLE_REMOTE_CONTROL			?= 0
 ENABLE_UART_DEBUG			  	?= 0
 ENABLE_SPEED_OPTS                ?= 0
+ENABLE_PMR_LPD_SIMPLE            ?= 0
 
 ENABLE_MESSENGER              			?= 1
 ENABLE_MESSENGER_DELIVERY_NOTIFICATION	?= 1
@@ -47,6 +48,26 @@ ENABLE_BYP_RAW_DEMODULATORS     ?= 0
 ENABLE_BLMIN_TMP_OFF            ?= 0
 ENABLE_SCAN_RANGES              ?= 1
 ENABLE_SCANLIST                 ?= 0
+
+ifeq ($(ENABLE_PMR_LPD_SIMPLE),1)
+	ENABLE_FMRADIO := 1
+	ENABLE_FMRADIO_BASIC := 1
+	ENABLE_MESSENGER := 1
+	ENABLE_MESSENGER_DELIVERY_NOTIFICATION := 1
+	ENABLE_MESSENGER_NOTIFICATION := 1
+	ENABLE_SPECTRUM := 0
+	ENABLE_FEAT_F4HWN_SPECTRUM := 0
+	ENABLE_WIDE_RX := 0
+	ENABLE_SCAN_RANGES := 0
+	ENABLE_SCANLIST := 0
+	ENABLE_VOX := 0
+	ENABLE_ALARM := 0
+	ENABLE_TX1750 := 0
+	ENABLE_DTMF_CALLING := 0
+	ENABLE_DTMF := 0
+	ENABLE_COPY_CHAN_TO_VFO := 0
+	EDITION_STRING := PMR-LPD
+endif
 
 # ---- CONTRIB MODS ----
 
@@ -230,6 +251,9 @@ ifeq ($(ENABLE_UART_DEBUG),1)
 endif
 ifeq ($(ENABLE_REMOTE_CONTROL),1)
 	CXXFLAGS += -DENABLE_REMOTE_CONTROL
+endif
+ifeq ($(ENABLE_PMR_LPD_SIMPLE),1)
+	CCFLAGS += -DENABLE_PMR_LPD_SIMPLE
 endif
 
 ifeq ($(ENABLE_MESSENGER),1)
@@ -467,6 +491,9 @@ APP_SRCS += $(wildcard $(SRC)/driver/*.c)
 APP_SRCS += $(wildcard $(SRC)/helper/*.c)
 APP_SRCS += $(wildcard $(SRC)/app/*.c)
 APP_SRCS += $(wildcard $(SRC)/ui/*.c)
+ifeq ($(ENABLE_SPECTRUM),0)
+	APP_SRCS := $(filter-out $(SRC)/app/spectrum.c,$(APP_SRCS))
+endif
 APP_OBJS = $(addprefix $(BUILD)/, $(APP_SRCS:.c=.o))
 
 # Find all include directories recursively

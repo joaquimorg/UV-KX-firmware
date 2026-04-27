@@ -44,6 +44,39 @@
 
 const t_menu_item MenuList[] =
 {
+#ifdef ENABLE_PMR_LPD_SIMPLE
+        {"SQL",         MENU_SQL           },
+        {"POWER",       MENU_TXP           },
+        {"RX DCS",      MENU_R_DCS         },
+        {"RX CTCS",     MENU_R_CTCS        },
+        {"TX DCS",      MENU_T_DCS         },
+        {"TX CTCS",     MENU_T_CTCS        },
+        {"W/N",         MENU_W_N           },
+        {"BUSYLOCK",    MENU_BCL           },
+        {"RX MODE",     MENU_TDR           },
+        {"KEY LCK",     MENU_AUTOLK        },
+        {"TXT OUT",     MENU_TOT           },
+        {"BAT SAVE",    MENU_SAVE          },
+        {"MIC",         MENU_MIC           },
+        {"F1 SHORT",    MENU_F1SHRT        },
+        {"F1 LONG",     MENU_F1LONG        },
+        {"F2 SHORT",    MENU_F2SHRT        },
+        {"F2 LONG",     MENU_F2LONG        },
+        {"M LONG",      MENU_MLONG         },
+        {"BL TIME",     MENU_ABR           },
+        {"BL MIN",      MENU_ABR_MIN       },
+        {"BL MAX",      MENU_ABR_MAX       },
+        {"BL TXRX",     MENU_ABR_ON_TX_RX  },
+        {"BEEP",        MENU_BEEP          },
+        {"ROGER",       MENU_ROGER         },
+        {"STE",         MENU_STE           },
+        {"RP STE",      MENU_RP_STE        },
+        {"ABOUT",       MENU_VOL           },
+        {"BAT CAL",     MENU_BATCAL        },
+        {"BAT TYP",     MENU_BATTYP        },
+        {"RESET",       MENU_RESET         },
+        {"",            0xff               }
+#else
     //   text,          menu ID
         {"SQL",         MENU_SQL           },
         {"STEP ",       MENU_STEP          },
@@ -183,6 +216,7 @@ const t_menu_item MenuList[] =
         {"RESET",       MENU_RESET         }, // might be better to move this to the hidden menu items ?
 
         {"",            0xff               }  // end of list - DO NOT delete or move this this
+#endif
 };
 
 const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_F_LOCK;

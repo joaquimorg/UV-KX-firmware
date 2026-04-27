@@ -640,13 +640,24 @@ void ACTION_BackLightOnDemand(void)
     void ACTION_Mute(void)
     {
         // Toggle mute state
+        if (!gMute && gEeprom.VOLUME_GAIN > 0) {
+            gEeprom.VOLUME_GAIN_BACKUP = gEeprom.VOLUME_GAIN;
+        }
+
         gMute = !gMute;
 
         // Update the registers
         #ifdef ENABLE_FMRADIO
             BK1080_WriteRegister(BK1080_REG_05_SYSTEM_CONFIGURATION2, gMute ? 0x0A10 : 0x0A1F);
         #endif
-        gEeprom.VOLUME_GAIN = gMute ? 0 : gEeprom.VOLUME_GAIN_BACKUP;
+
+        if (gMute) {
+            gEeprom.VOLUME_GAIN = 0;
+        } else {
+            gEeprom.VOLUME_GAIN = (gEeprom.VOLUME_GAIN_BACKUP > 0 && gEeprom.VOLUME_GAIN_BACKUP < 64) ?
+                gEeprom.VOLUME_GAIN_BACKUP : 58;
+        }
+
         BK4819_WriteRegister(BK4819_REG_48,
             (11u << 12)                |  // ??? .. 0 ~ 15, doesn't seem to make any difference
             (0u << 10)                 |  // AF Rx Gain-1
@@ -654,6 +665,7 @@ void ACTION_BackLightOnDemand(void)
             (gEeprom.DAC_GAIN << 0));     // AF DAC Gain (after Gain-1 and Gain-2)
 
         gUpdateStatus = true;
+        gUpdateDisplay = true;
     }
     #endif
 

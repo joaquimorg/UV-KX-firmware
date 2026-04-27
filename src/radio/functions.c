@@ -17,6 +17,9 @@
 #include <string.h>
 
 #include "app/dtmf.h"
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    #include "app/pmr_lpd.h"
+#endif
 #if defined(ENABLE_FMRADIO)
     #include "app/fm.h"
 #endif
@@ -152,6 +155,14 @@ void FUNCTION_PowerSave() {
 
 void FUNCTION_Transmit()
 {
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    if (!PMRLPD_CanTransmit(gEeprom.TX_VFO, gCurrentVfo)) {
+        RADIO_SetVfoState(VFO_STATE_TX_DISABLE);
+        AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+        return;
+    }
+#endif
+
     // if DTMF is enabled when TX'ing, it changes the TX audio filtering !! .. 1of11
     BK4819_DisableDTMF();
 
@@ -258,6 +269,14 @@ void FUNCTION_Select(FUNCTION_Type_t Function)
 {
     const FUNCTION_Type_t PreviousFunction = gCurrentFunction;
     const bool bWasPowerSave = PreviousFunction == FUNCTION_POWER_SAVE;
+
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    if (Function == FUNCTION_TRANSMIT && !PMRLPD_CanTransmit(gEeprom.TX_VFO, gCurrentVfo)) {
+        RADIO_SetVfoState(VFO_STATE_TX_DISABLE);
+        AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+        return;
+    }
+#endif
 
     gCurrentFunction = Function;
 

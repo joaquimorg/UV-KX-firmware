@@ -28,6 +28,9 @@
 #endif
 #include "app/generic.h"
 #include "app/main.h"
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    #include "app/pmr_lpd.h"
+#endif
 #include "app/scanner.h"
 
 #ifdef ENABLE_SPECTRUM
@@ -126,6 +129,11 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 
         case KEY_1:
         {
+#ifdef ENABLE_PMR_LPD_SIMPLE
+            if (beep)
+                gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
+            break;
+#else
             uint8_t Vfo = gEeprom.TX_VFO;
             if (!IS_FREQ_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
                 gWasFKeyPressed = false;
@@ -195,6 +203,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
                 gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
 
             break;
+#endif
         }
 
         case KEY_2:
@@ -205,6 +214,14 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
             break;
 
         case KEY_3:
+#ifdef ENABLE_PMR_LPD_SIMPLE
+            PMRLPD_ToggleMode(gEeprom.TX_VFO);
+            gRequestSaveVFO = true;
+            gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
+            if (beep)
+                gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
+            break;
+#else
             #ifdef ENABLE_FEAT_F4HWN
                 gVfoConfigureMode     = VFO_CONFIGURE;
             #endif
@@ -213,6 +230,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
                 gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 
             break;
+#endif
 
         case KEY_4:
             gWasFKeyPressed          = false;
@@ -417,6 +435,14 @@ void channelMoveSwitch(void) {
 
 static void MAIN_Key_DIGITS(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 {
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    if (!gWasFKeyPressed && PMRLPD_IsMemoryMode(gEeprom.TX_VFO)) {
+        if (!bKeyHeld && bKeyPressed)
+            gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
+        return;
+    }
+#endif
+
     if (bKeyHeld) { // key held down
         if (bKeyPressed) {
             if (gScreenToDisplay == DISPLAY_MAIN) {
@@ -886,6 +912,14 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
     }
 
     if (gScanStateDir == SCAN_OFF) {
+#ifdef ENABLE_PMR_LPD_SIMPLE
+        if (PMRLPD_IsMemoryMode(gEeprom.TX_VFO)) {
+            PMRLPD_Move(gEeprom.TX_VFO, Direction);
+            gRequestSaveVFO = true;
+            gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
+            return;
+        }
+#endif
 #ifdef ENABLE_NOAA
         if (!IS_NOAA_CHANNEL(Channel))
 #endif

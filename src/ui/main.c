@@ -24,6 +24,9 @@
 #ifdef ENABLE_MESSENGER
 	#include "app/messenger.h"
 #endif
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    #include "app/pmr_lpd.h"
+#endif
 // #include "bitmaps.h"
 #include "board.h"
 #include "driver/bk4819.h"
@@ -466,6 +469,13 @@ void UI_DisplayMain(void)
 
     UI_SetFont(FONT_8B_TR);
 
+#if defined(ENABLE_PMR_LPD_SIMPLE)
+    if (PMRLPD_IsMemoryMode(vfoA)) {
+        PMRLPD_GetChannelName(PMRLPD_GetCurrentChannel(vfoA), String, sizeof(String));
+        UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, 6, false, false, false, String);
+    } else
+#endif
+    {
     SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[vfoA]);
     if (String[0] == 0)
     {   // no channel name, show the channel number instead
@@ -476,6 +486,7 @@ void UI_DisplayMain(void)
     } else {
         // show the channel name
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, 6, false, false, false, String);
+    }
     }
 
     const bool lastRxIsVfoA = (gLastRxVfoValid && gLastRxVfo == vfoA);
@@ -496,7 +507,14 @@ void UI_DisplayMain(void)
     else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfoA]))
     {   // frequency mode
         // show the frequency band number
+#if defined(ENABLE_PMR_LPD_SIMPLE)
+        if (PMRLPD_IsMemoryMode(vfoA)) {
+        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 21, true, false, false, "%02u/%02u", PMRLPD_GetCurrentChannel(vfoA) + 1, PMRLPD_ChannelCount());
+        } else
+#endif
+        {
         UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 21, true, false, false, "F-%03u", 1 + gEeprom.ScreenChannel[vfoA] - FREQ_CHANNEL_FIRST);
+        }
     }
 
     if(gCurrentFunction == FUNCTION_TRANSMIT && gSetting_set_tmr == true)
@@ -590,6 +608,13 @@ void UI_DisplayMain(void)
     UI_DrawBox(0, vfoBY, 128, 7);
     
     UI_SetFont(FONT_8_TR);
+#if defined(ENABLE_PMR_LPD_SIMPLE)
+    if (PMRLPD_IsMemoryMode(vfoB)) {
+        PMRLPD_GetChannelName(PMRLPD_GetCurrentChannel(vfoB), String, sizeof(String));
+        UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, vfoBY + 6, false, false, false, String);
+    } else
+#endif
+    {
     SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[vfoB]);
     if (String[0] == 0)
     {   // no channel name, show the channel number instead
@@ -600,6 +625,7 @@ void UI_DisplayMain(void)
     } else {
         // show the channel name
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, vfoBY + 6, false, false, false, String);
+    }
     }
 
     const ModulationMode_t modB = vfoInfoB->Modulation;    
@@ -637,7 +663,14 @@ void UI_DisplayMain(void)
         else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfoB]))
         {   // frequency mode
             // show the frequency band number
+#if defined(ENABLE_PMR_LPD_SIMPLE)
+            if (PMRLPD_IsMemoryMode(vfoB)) {
+                UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, vfoBY + 15, true, false, false, "%02u/%02u", PMRLPD_GetCurrentChannel(vfoB) + 1, PMRLPD_ChannelCount());
+            } else
+#endif
+            {
             UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, vfoBY + 15, true, false, false, "F-%03u", 1 + gEeprom.ScreenChannel[vfoB] - FREQ_CHANNEL_FIRST);
+            }
         }
     }
     UI_DrawFrequencySmall(rxVFO2, displayFreqVFO2, 126, vfoBY + 17);

@@ -15,6 +15,9 @@
  */
 
 #include "frequencies.h"
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    #include "app/pmr_lpd.h"
+#endif
 #include "misc.h"
 #include "settings.h"
 #include <assert.h>
@@ -188,6 +191,10 @@ uint32_t FREQUENCY_RoundToStep(uint32_t freq, uint16_t step)
 int32_t TX_freq_check(const uint32_t Frequency)
 {   // return '0' if TX frequency is allowed
     // otherwise return '-1'
+
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    return (PMRLPD_IsMemoryMode(gEeprom.TX_VFO) && PMRLPD_IsAllowedTxFrequency(Frequency)) ? 0 : -1;
+#endif
 
     if (Frequency < frequencyBandTable[0].lower || Frequency > frequencyBandTable[BAND_N_ELEM - 1].upper)
         return -1;  // not allowed outside this range

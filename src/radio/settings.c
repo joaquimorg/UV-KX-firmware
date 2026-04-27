@@ -29,6 +29,9 @@
 #ifdef ENABLE_MESSENGER
     #include "app/messenger.h"
 #endif
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    #include "app/pmr_lpd.h"
+#endif
 
 #ifdef ENABLE_FEAT_F4HWN_RESET_CHANNEL
 static const uint32_t gDefaultFrequencyTable[] =
@@ -102,6 +105,22 @@ void SETTINGS_InitEEPROM(void)
     gEeprom.MrChannel[1]       = IS_MR_CHANNEL(Data[4])    ? Data[4] : MR_CHANNEL_FIRST;
     gEeprom.FreqChannel[0]     = IS_FREQ_CHANNEL(Data[2])  ? Data[2] : (FREQ_CHANNEL_FIRST + BAND6_400MHz);
     gEeprom.FreqChannel[1]     = IS_FREQ_CHANNEL(Data[5])  ? Data[5] : (FREQ_CHANNEL_FIRST + BAND6_400MHz);
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    const uint8_t pmrLpdChannelA = (Data[6] & 0x7F) < PMRLPD_ChannelCount() ? (Data[6] & 0x7F) : 0;
+    const uint8_t pmrLpdChannelB = (Data[7] & 0x7F) < PMRLPD_ChannelCount() ? (Data[7] & 0x7F) : 16;
+    const bool pmrLpdMemoryModeA = Data[6] == 0xFF ? true : ((Data[6] & 0x80) == 0);
+    const bool pmrLpdMemoryModeB = Data[7] == 0xFF ? false : ((Data[7] & 0x80) == 0);
+
+    PMRLPD_Select(0, pmrLpdChannelA);
+    PMRLPD_Select(1, pmrLpdChannelB);
+    if (!pmrLpdMemoryModeA) {
+        PMRLPD_EnterVfoMode(0);
+    }
+    if (!pmrLpdMemoryModeB) {
+        PMRLPD_EnterVfoMode(1);
+    }
+    gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
+#endif
 #ifdef ENABLE_NOAA
     gEeprom.NoaaChannel[0] = IS_NOAA_CHANNEL(Data[6])  ? Data[6] : NOAA_CHANNEL_FIRST;
     gEeprom.NoaaChannel[1] = IS_NOAA_CHANNEL(Data[7])  ? Data[7] : NOAA_CHANNEL_FIRST;
@@ -183,6 +202,11 @@ void SETTINGS_InitEEPROM(void)
     gEeprom.REPEATER_TAIL_TONE_ELIMINATION = (Data[2] < 11) ? Data[2] : 0;
     gEeprom.TX_VFO                         = (Data[3] <  2) ? Data[3] : 0;
     gEeprom.BATTERY_TYPE                   = (Data[4] < BATTERY_TYPE_UNKNOWN) ? Data[4] : BATTERY_TYPE_1600_MAH;
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    if (PMRLPD_IsMemoryMode(gEeprom.TX_VFO)) {
+        PMRLPD_Select(gEeprom.TX_VFO, PMRLPD_GetCurrentChannel(gEeprom.TX_VFO));
+    }
+#endif
 
     // 0ED0..0ED7
     EEPROM_ReadBuffer(0x0ED0, Data, 8);
@@ -590,15 +614,25 @@ void SETTINGS_SaveVfoIndices(void)
         EEPROM_ReadBuffer(0x0E80, State, sizeof(State));
     #endif
 
-    State[0] = gEeprom.ScreenChannel[0];
+    #ifdef ENABLE_PMR_LPD_SIMPLE
+        State[0] = PMRLPD_IsMemoryMode(0) ? PMR_LPD_EEPROM_CHANNEL : gEeprom.ScreenChannel[0];
+        State[2] = gEeprom.FreqChannel[0];
+        State[3] = PMRLPD_IsMemoryMode(1) ? PMR_LPD_EEPROM_CHANNEL : gEeprom.ScreenChannel[1];
+        State[5] = gEeprom.FreqChannel[1];
+    #else
+        State[0] = gEeprom.ScreenChannel[0];
+        State[2] = gEeprom.FreqChannel[0];
+        State[3] = gEeprom.ScreenChannel[1];
+        State[5] = gEeprom.FreqChannel[1];
+    #endif
     State[1] = gEeprom.MrChannel[0];
-    State[2] = gEeprom.FreqChannel[0];
-    State[3] = gEeprom.ScreenChannel[1];
     State[4] = gEeprom.MrChannel[1];
-    State[5] = gEeprom.FreqChannel[1];
     #ifdef ENABLE_NOAA
         State[6] = gEeprom.NoaaChannel[0];
         State[7] = gEeprom.NoaaChannel[1];
+    #elif defined(ENABLE_PMR_LPD_SIMPLE)
+        State[6] = PMRLPD_GetCurrentChannel(0) | (PMRLPD_IsMemoryMode(0) ? 0x00 : 0x80);
+        State[7] = PMRLPD_GetCurrentChannel(1) | (PMRLPD_IsMemoryMode(1) ? 0x00 : 0x80);
     #endif
 
     EEPROM_WriteBuffer(0x0E80, State);

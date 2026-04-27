@@ -1,4 +1,7 @@
 #include "app/chFrScanner.h"
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    #include "app/pmr_lpd.h"
+#endif
 #include "audio.h"
 #include "functions.h"
 #include "misc.h"
@@ -44,6 +47,13 @@ void COMMON_SwitchVFOs()
 
 void COMMON_SwitchVFOMode()
 {
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    PMRLPD_ToggleMode(gEeprom.TX_VFO);
+    gRequestSaveVFO = true;
+    gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
+    return;
+#endif
+
 #ifdef ENABLE_NOAA
     if (gEeprom.VFO_OPEN && !IS_NOAA_CHANNEL(gTxVfo->CHANNEL_SAVE))
 #else

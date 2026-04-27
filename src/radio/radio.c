@@ -25,6 +25,9 @@
 #ifdef ENABLE_MESSENGER
 	#include "app/messenger.h"
 #endif
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    #include "app/pmr_lpd.h"
+#endif
 #include "audio.h"
 #include "dp32g030/gpio.h"
 #include "dcs.h"
@@ -167,6 +170,14 @@ void RADIO_InitInfo(VFO_Info_t *pInfo, const uint8_t ChannelSave, const uint32_t
 void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure)
 {
     VFO_Info_t *pVfo = &gEeprom.VfoInfo[VFO];
+
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    if (PMRLPD_IsMemoryMode(VFO)) {
+        (void)configure;
+        PMRLPD_Apply(VFO, pVfo);
+        return;
+    }
+#endif
 
     if (!gSetting_350EN) {
         if (gEeprom.FreqChannel[VFO] == FREQ_CHANNEL_FIRST + BAND5_350MHz)
@@ -445,6 +456,10 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
     #endif
 
     RADIO_ConfigureSquelchAndOutputPower(pVfo);
+
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    pVfo->TX_LOCK = true;
+#endif
 }
 
 void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
@@ -935,6 +950,15 @@ void RADIO_SetupRegisters(bool switchToForeground)
 
 void RADIO_SetTxParameters(void)
 {
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    if (!PMRLPD_CanTransmit(gEeprom.TX_VFO, gCurrentVfo)) {
+        BK4819_SetupPowerAmplifier(0, 0);
+        BK4819_ToggleGpioOut(BK4819_GPIO1_PIN29_PA_ENABLE, false);
+        BK4819_Conditional_RX_TurnOn_and_GPIO6_Enable();
+        return;
+    }
+#endif
+
     BK4819_FilterBandwidth_t Bandwidth = gCurrentVfo->CHANNEL_BANDWIDTH;
 
     #ifdef ENABLE_FEAT_F4HWN_NARROWER
@@ -1109,6 +1133,12 @@ void RADIO_PrepareTX(void)
 
     RADIO_SelectCurrentVfo();
 
+#ifdef ENABLE_PMR_LPD_SIMPLE
+    if (!PMRLPD_CanTransmit(gEeprom.TX_VFO, gCurrentVfo)) {
+        State = VFO_STATE_TX_DISABLE;
+        gVfoConfigureMode = VFO_CONFIGURE;
+    } else
+#endif
 #ifdef ENABLE_FEAT_F4HWN
         if(TX_freq_check(gCurrentVfo->pTX->Frequency) != 0 && gCurrentVfo->TX_LOCK == true
     #if defined(ENABLE_ALARM) || defined(ENABLE_TX1750)

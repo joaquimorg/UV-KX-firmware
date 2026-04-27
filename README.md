@@ -75,6 +75,7 @@ Special thanks to Jean-Cyrille F6IWW (2 times), Fabrice 14RC123, David F4BPP, Ol
   - [Main features from Egzumer:](#main-features-from-egzumer)
   - [Manual](#manual)
   - [Radio performance](#radio-performance)
+  - [PMR/LPD simple edition](#pmrlpd-simple-edition)
   - [Compiler](#compiler)
   - [Credits](#credits)
   - [Other sources of information](#other-sources-of-information)
@@ -245,6 +246,32 @@ non-existent (just like Quansheng's firmware).
 On the other hand, FM RX audio will/should be fine.
 
 But, they are nice toys for the price, fun to play with.
+
+## PMR/LPD simple edition
+
+This fork can also be built as a simplified PMR/LPD firmware. It keeps a fixed PMR446 and LPD channel list, hides non-essential menu entries, and keeps commercial FM radio and Messenger enabled.
+
+Build it with:
+
+```sh
+make clean
+make all ENABLE_PMR_LPD_SIMPLE=1
+```
+
+In this mode:
+
+* PMR446 channels 1-16 and LPD channels 1-69 are fixed in code.
+* Normal memories 1-200 are not modified or used for the PMR/LPD channel list.
+* The selected channel state is stored using a VFO channel number above the normal memory range, so a generic firmware can ignore it and fall back to normal memories.
+* A/B switching is available.
+* F+3 switches the active VFO between the fixed PMR/LPD channel list and free VFO frequency entry.
+* `UP`/`DOWN` changes the fixed PMR/LPD channel while in PMR/LPD mode, and steps frequency while in VFO mode.
+* Direct frequency entry is allowed in VFO mode, including frequencies outside PMR/LPD.
+* Transmission is allowed only while the active VFO is in the fixed PMR/LPD channel mode.
+* Non-essential settings are hidden or blocked.
+* FM radio and Messenger remain available.
+
+The normal firmware remains the default build when `ENABLE_PMR_LPD_SIMPLE` is not set.
 
 ## Compiler
 
