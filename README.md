@@ -20,6 +20,39 @@ This repository is a fork of [Armel custom firmware](https://github.com/armel/uv
 <img src="images/uv-k5-screenshot-5.png" alt="Messenger" width="524" />
 <img src="images/uv-k5-screenshot_spectrum.png" alt="Spectrum Analyzer" width="524" />
 
+# What's new: 4-slot watch (A/B/C/D)
+
+This version replaces the classic dual watch (A/B) with a **4-slot watch**. The radio now manages four VFO slots — A, B, C and D — and each one can independently hold a memory channel or a VFO frequency.
+
+**How it works**
+
+- When the watch is enabled (`RX MODE` menu → `WATCH ALL`), the idle receiver cycles A → B → C → D → A (100 ms dwell per slot). With `MAIN ONLY` it stays on the selected slot.
+- The **A/B key (key 2)** cycles the selected slot through all four. The selected slot is the *main* one: it is shown in detail at the top of the screen, it is the one you edit (frequency entry, channel up/down, F+3 MR/VFO toggle, F+1 band), and **TX always happens on it**.
+- The main screen shows the selected slot in full detail (name bar, big frequency, modulation/bandwidth/power, CTCSS/DCS or step) and the other three slots as compact rows below a dotted divider — slot letter, channel name (or `M-xxx`/`F-xxx`) and frequency. A receiving row is fully inverted; the last-RX slot letter blinks. The status line shows `DW` while cycling, or `DW-x` when parked on slot *x*.
+
+**Storage (EEPROM)**
+
+Slots C and D are stored in a previously unused EEPROM area, so the existing layout (channels, names, calibration, settings) is untouched and remains compatible:
+
+| Address | Size | Content |
+|---|---|---|
+| `0x1F90` | 16 B | Slot C frequency-mode record (same format as a channel record) |
+| `0x1FA0` | 16 B | Slot D frequency-mode record |
+| `0x1FB0` | 8 B | Slot C/D channel indices (screen/MR/freq channel) |
+
+A virgin (0xFF) region boots to sane defaults. A full factory reset also wipes this area. Note: unlike A/B, which keep one frequency record per band, C and D keep a single record — changing band on C/D overwrites their previous frequency settings.
+
+**Behaviour changes**
+
+- `RX MODE` menu is now just `MAIN ONLY` / `WATCH ALL` — the **cross-band modes were removed**, since TX is always on the selected slot.
+- The dead NOAA code was removed.
+- With scan ranges, the range stop frequency now comes from the **next slot in the cycle** (it used to come from "the other VFO").
+- The keypad lock icon moved to the bottom status line.
+
+**CHIRP**
+
+The bundled driver (`CHIRP/uvk5_egzumer_f4hwn_ver_4_3_0.py`) was updated: it maps the new `0x1F90` region, uploads it with the normal write, exposes *VFO C/D Channel/Band* and *VFO C/D Frequency* in Basic Settings, offers all four slots in *Main VFO*, and reduces *RX Mode* to the two supported options.
+
 # Differences from the original Armel firmware
 - Reorganized code layout: main code in `src/` and linker files in `linker/` for easier navigation/builds.
 - New U8G2-based GUI with custom fonts/icons (`fonts_icons/`, `src/ui/font/`) and a new welcome screen.
@@ -66,6 +99,7 @@ Special thanks to Jean-Cyrille F6IWW (2 times), Fabrice 14RC123, David F4BPP, Ol
 
 - [My fork of Quansheng UV-K5/K6/5R custom firmware](#my-fork-of-quansheng-uv-k5k65r-custom-firmware)
   - [..... Work in PROGRESS - not for everyday use .....](#-work-in-progress---not-for-everyday-use-)
+- [What's new: 4-slot watch (A/B/C/D)](#whats-new-4-slot-watch-abcd)
 - [Differences from the original Armel firmware](#differences-from-the-original-armel-firmware)
 - [UV-Kx Web tools](#uv-kx-web-tools)
 - [Open re-implementation of the Quansheng UV-K5/K6/5R v2.1.27 firmware](#open-re-implementation-of-the-quansheng-uv-k5k65r-v2127-firmware)
