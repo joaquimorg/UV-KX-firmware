@@ -718,7 +718,9 @@ void RADIO_SetupRegisters(bool switchToForeground)
 
     BK4819_ToggleGpioOut(BK4819_GPIO1_PIN29_PA_ENABLE, false);
 
-    while (1)
+    // drain pending interrupts, bounded so a misbehaving chip can never
+    // stall the radio (and the watch hop) indefinitely
+    for (unsigned int i = 0; i < 30; i++)
     {
         const uint16_t Status = BK4819_ReadRegister(BK4819_REG_0C);
         if ((Status & 1u) == 0) // INTERRUPT REQUEST

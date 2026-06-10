@@ -330,6 +330,12 @@ void UI_MAIN_PrintAGC(bool now)
 }
 #endif
 
+void UI_MAIN_ClearLastRx(void)
+{
+    gLastRxVfoValid       = false;
+    gLastRxBlinkCountdown = 0;
+}
+
 void UI_MAIN_TimeSlice500ms(void)
 {
     if(gScreenToDisplay==DISPLAY_MAIN) {

@@ -3,6 +3,7 @@
 #include "functions.h"
 #include "misc.h"
 #include "settings.h"
+#include "ui/main.h"
 #include "ui/ui.h"
 #include "ui/gui.h"
 
@@ -29,6 +30,9 @@ void COMMON_SwitchVFOs()
     gScanRangeStart = 0;
 #endif
     gEeprom.TX_VFO = (gEeprom.TX_VFO + 1) % NUM_VFO_SLOTS;
+
+    // the last-RX highlight refers to the previous slot arrangement
+    UI_MAIN_ClearLastRx();
 
     gRequestSaveSettings  = 1;
     gFlagReconfigureVfos  = true;

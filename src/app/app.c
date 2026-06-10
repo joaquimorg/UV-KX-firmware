@@ -1042,7 +1042,9 @@ void APP_Update(void)
         && gVoiceWriteIndex == 0
 #endif
     ) {
-        static bool goToSleep;
+        // number of watch hops left before going back to sleep; sized so a
+        // wake cycle visits every slot once (full A..D revolution)
+        static uint8_t dwHopsRemaining;
         // wake up, enable RX then go back to sleep
         if (gRxIdleMode)
         {
@@ -1056,9 +1058,9 @@ void APP_Update(void)
             if (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF &&
                 gScanStateDir == SCAN_OFF &&
                 !gCssBackgroundScan)
-            {   // dual watch mode, toggle between the two VFO's
+            {   // watch mode, step to the next VFO slot
                 DualwatchAlternate();
-                goToSleep = false;
+                dwHopsRemaining = NUM_VFO_SLOTS - 1;
             }
 
             FUNCTION_Init();
@@ -1066,7 +1068,7 @@ void APP_Update(void)
             gPowerSave_10ms = power_save1_10ms; // come back here in a bit
             gRxIdleMode     = false;            // RX is awake
         }
-        else if (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF || gScanStateDir != SCAN_OFF || gCssBackgroundScan || goToSleep)
+        else if (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF || gScanStateDir != SCAN_OFF || gCssBackgroundScan || dwHopsRemaining == 0)
         {   // dual watch mode off or scanning or rssi update request
             // go back to sleep
 
@@ -1083,7 +1085,7 @@ void APP_Update(void)
             gPowerSave_10ms = gEeprom.BATTERY_SAVE * 10;
 #endif
             gRxIdleMode     = true;
-            goToSleep = false;
+            dwHopsRemaining = 0;
 
             BK4819_DisableVox();
             BK4819_Sleep();
@@ -1093,10 +1095,10 @@ void APP_Update(void)
 
         }
         else {
-            // toggle between the two VFO's
+            // step to the next VFO slot of the wake-cycle revolution
             DualwatchAlternate();
             gPowerSave_10ms   = power_save1_10ms;
-            goToSleep = true;
+            dwHopsRemaining--;
         }
 
         gPowerSaveCountdownExpired = false;
