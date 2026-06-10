@@ -14,7 +14,6 @@ This repository is a fork of [Armel custom firmware](https://github.com/armel/uv
 >
 
 <img src="images/uv-k5-screenshot-1.png" alt="VFO" width="524" />
-<img src="images/uv-k5-screenshot-4.png" alt="VFO RX" width="524" />
 <img src="images/uv-k5-screenshot-2.png" alt="MENU" width="524" />
 <img src="images/uv-k5-screenshot-3.png" alt="Menu" width="524" />
 <img src="images/uv-k5-screenshot-5.png" alt="Messenger" width="524" />
