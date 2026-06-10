@@ -506,8 +506,10 @@ void APP_StartListening(FUNCTION_Type_t function)
         BK1080_Init0();
 #endif
 
-    // clear the other vfo's rssi level (to hide the antenna symbol)
-    gVFO_RSSI_bar_level[!vfo] = 0;
+    // clear the other vfos' rssi level (to hide the antenna symbol)
+    for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+        if (i != vfo)
+            gVFO_RSSI_bar_level[i] = 0;
 
     AUDIO_AudioPathOn();
     gEnableSpeaker = true;
@@ -527,9 +529,7 @@ void APP_StartListening(FUNCTION_Type_t function)
         gDualWatchCountdown_10ms = dual_watch_count_after_2_10ms;
         gScheduleDualWatch       = false;
 
-        // when crossband is active only the main VFO should be used for TX
-        if(gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF)
-            gRxVfoIsActive = true;
+        gRxVfoIsActive = true;
 
         // let the user see DW is not active
         gDualWatchActive = false;
@@ -589,8 +589,8 @@ uint32_t APP_SetFrequencyByStep(VFO_Info_t *pInfo, int8_t direction)
 
 static void DualwatchAlternate(void)
 {
-    {   // toggle between VFO's
-        gEeprom.RX_VFO = !gEeprom.RX_VFO;
+    {   // cycle through the VFO slots
+        gEeprom.RX_VFO = (gEeprom.RX_VFO + 1) % NUM_VFO_SLOTS;
         gRxVfo         = &gEeprom.VfoInfo[gEeprom.RX_VFO];
 
         if (!gDualWatchActive)
@@ -1702,8 +1702,8 @@ void APP_TimeSlice500ms(void)
             if (SCANNER_IsScanning()) {
                 BK4819_StopScan();
 
-                RADIO_ConfigureChannel(0, VFO_CONFIGURE_RELOAD);
-                RADIO_ConfigureChannel(1, VFO_CONFIGURE_RELOAD);
+                for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+                    RADIO_ConfigureChannel(i, VFO_CONFIGURE_RELOAD);
 
                 RADIO_SetupRegisters(true);
             }
@@ -2173,8 +2173,8 @@ Skip:
 
     if (gVfoConfigureMode != VFO_CONFIGURE_NONE) {
         if (gFlagResetVfos) {
-            RADIO_ConfigureChannel(0, gVfoConfigureMode);
-            RADIO_ConfigureChannel(1, gVfoConfigureMode);
+            for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+                RADIO_ConfigureChannel(i, gVfoConfigureMode);
         }
         else
             RADIO_ConfigureChannel(gEeprom.TX_VFO, gVfoConfigureMode);
@@ -2200,8 +2200,8 @@ Skip:
         gDTMF_IsTx                  = false;
 #endif
 
-        gVFO_RSSI_bar_level[0]      = 0;
-        gVFO_RSSI_bar_level[1]      = 0;
+        for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+            gVFO_RSSI_bar_level[i] = 0;
 
         gFlagReconfigureVfos        = false;
 

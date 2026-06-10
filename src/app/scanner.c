@@ -199,8 +199,8 @@ static void SCANNER_Key_MENU(bool bKeyPressed, bool bKeyHeld)
                 gTxVfo->STEP_SETTING = stepSetting;
             }
             else {
-                RADIO_ConfigureChannel(0, VFO_CONFIGURE_RELOAD);
-                RADIO_ConfigureChannel(1, VFO_CONFIGURE_RELOAD);
+                for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+                    RADIO_ConfigureChannel(i, VFO_CONFIGURE_RELOAD);
 
                 gTxVfo->freq_config_RX.CodeType = gScanCssResultType;
                 gTxVfo->freq_config_RX.Code     = gScanCssResultCode;
@@ -365,7 +365,6 @@ void SCANNER_Start(bool singleFreq)
 void SCANNER_Stop(void)
 {
     if(SCANNER_IsScanning()) {
-        gEeprom.CROSS_BAND_RX_TX = gBackup_CROSS_BAND_RX_TX;
         gVfoConfigureMode        = VFO_CONFIGURE_RELOAD;
         gFlagResetVfos           = true;
         gUpdateStatus            = true;

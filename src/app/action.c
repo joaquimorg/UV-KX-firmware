@@ -251,8 +251,10 @@ void ACTION_Scan(bool bRestart)
         AUDIO_PlaySingleVoice(true);
 #endif
 
-        // clear the other vfo's rssi level (to hide the antenna symbol)
-        gVFO_RSSI_bar_level[(gEeprom.RX_VFO + 1) & 1U] = 0;
+        // clear the other vfos' rssi level (to hide the antenna symbol)
+        for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+            if (i != gEeprom.RX_VFO)
+                gVFO_RSSI_bar_level[i] = 0;
 
         // let the user see DW is not active
         gDualWatchActive = false;
@@ -488,18 +490,7 @@ void ACTION_Update(void)
 
 void ACTION_RxMode(void)
 {
-    static bool cycle = 0;
-
-    switch(cycle) {
-        case 0:
-            gEeprom.DUAL_WATCH = !gEeprom.DUAL_WATCH;
-            cycle = 1;
-            break;
-        case 1:
-            gEeprom.CROSS_BAND_RX_TX = !gEeprom.CROSS_BAND_RX_TX;
-            cycle = 0;
-            break;
-    }
+    gEeprom.DUAL_WATCH = (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF) ? DUAL_WATCH_ON : DUAL_WATCH_OFF;
 
     ACTION_Update();
 }
@@ -508,20 +499,16 @@ void ACTION_MainOnly(void)
 {
     static bool cycle = 0;
     static uint8_t dw = 0;
-    static uint8_t cb = 0;
 
     switch(cycle) {
         case 0:
             dw = gEeprom.DUAL_WATCH;
-            cb = gEeprom.CROSS_BAND_RX_TX;
 
-            gEeprom.DUAL_WATCH = 0;
-            gEeprom.CROSS_BAND_RX_TX = 0;
+            gEeprom.DUAL_WATCH = DUAL_WATCH_OFF;
             cycle = 1;
             break;
         case 1:
             gEeprom.DUAL_WATCH = dw;
-            gEeprom.CROSS_BAND_RX_TX = cb;
             cycle = 0;
             break;
     }

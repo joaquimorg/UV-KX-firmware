@@ -36,6 +36,9 @@
     #define SWAP(a, b) ({ __typeof__ (a) _c = (a);  a = b; b = _c; })
 #endif
 
+// Number of VFO slots (A/B/C/D) the radio watches and the user can select
+#define NUM_VFO_SLOTS 4
+
 #define IS_MR_CHANNEL(x)       ((x) <= MR_CHANNEL_LAST)
 #define IS_FREQ_CHANNEL(x)     ((x) >= FREQ_CHANNEL_FIRST && (x) <= FREQ_CHANNEL_LAST)
 #define IS_VALID_CHANNEL(x)    ((x) < LAST_CHANNEL)
@@ -115,7 +118,6 @@ extern const uint16_t        dual_watch_count_after_rx_10ms;
 extern const uint16_t        dual_watch_count_after_1_10ms;
 extern const uint16_t        dual_watch_count_after_2_10ms;
 extern const uint16_t        dual_watch_count_toggle_10ms;
-extern const uint16_t        dual_watch_count_noaa_10ms;
 #ifdef ENABLE_VOX
     extern const uint16_t    dual_watch_count_after_vox_10ms;
 #endif
@@ -266,8 +268,8 @@ extern uint8_t               gFoundCTCSS;
 extern uint8_t               gFoundCDCSS;
 extern bool                  gEndOfRxDetectedMaybe;
 
-extern int16_t               gVFO_RSSI[2];
-extern uint8_t               gVFO_RSSI_bar_level[2];
+extern int16_t               gVFO_RSSI[NUM_VFO_SLOTS];
+extern uint8_t               gVFO_RSSI_bar_level[NUM_VFO_SLOTS];
 
 // battery critical, limit functionality to minimum
 extern uint8_t               gReducedService;
@@ -337,7 +339,6 @@ extern bool                  gKeyBeingHeld;
 extern bool                  gPttIsPressed;
 extern uint8_t               gPttDebounceCounter;
 extern uint8_t               gMenuListCount;
-extern uint8_t               gBackup_CROSS_BAND_RX_TX;
 extern uint8_t               gScanDelay_10ms;
 extern uint8_t               gFSKWriteIndex;
 extern volatile bool         gNextTimeslice;

@@ -63,7 +63,7 @@ static uint16_t gLastRxBlinkCountdown = 0; // 500ms units, counts down after las
 
     static bool isMainOnly()
     {
-        return (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF) && (gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF);
+        return gEeprom.DUAL_WATCH == DUAL_WATCH_OFF;
     }
 #endif
 
@@ -659,24 +659,20 @@ void UI_DisplayMain(void)
 
     //
 
-    uint8_t dw = (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) + (gEeprom.CROSS_BAND_RX_TX != CROSS_BAND_OFF) * 2;
-
-    if(dw == 1 || dw == 3) { // DWR - dual watch
+    if (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) { // DW - watch all slots
         if(gDualWatchActive) {
-            UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, "A/B");            
+            UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, "DW");
         }
         else
-        {            
-            UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, gLastRxVfo == vfoA ? "A" : "B");
+        {
+            char dwTag[5] = {'D', 'W', '-', (char)('A' + gLastRxVfo), 0};
+            UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, dwTag);
         }
     }
-    else if(dw == 2) { // XB - crossband
-        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, "X");
-    }
     else
-    {        
+    {
         UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 108, 64, true, false, false, "M");
-    }    
+    }
 
     if (gCurrentFunction == FUNCTION_POWER_SAVE)
     {

@@ -49,13 +49,11 @@ const uint8_t     scan_delay_10ms                  =   210 / 10;   // 210ms
     const uint16_t    dual_watch_count_after_rx_10ms   =  1000 / 10;   // 1 sec after RX ends ?
     const uint16_t    dual_watch_count_after_1_10ms    =  5000 / 10;   // 5 sec
     const uint16_t    dual_watch_count_after_2_10ms    =  420;         // 4.2 sec
-    const uint16_t    dual_watch_count_noaa_10ms       =    70 / 10;   // 70ms
 #else
     const uint16_t    dual_watch_count_after_tx_10ms   =  3600 / 10;   // 3.6 sec after TX ends
     const uint16_t    dual_watch_count_after_rx_10ms   =  1000 / 10;   // 1 sec after RX ends ?
     const uint16_t    dual_watch_count_after_1_10ms    =  5000 / 10;   // 5 sec
     const uint16_t    dual_watch_count_after_2_10ms    =  3600 / 10;   // 3.6 sec
-    const uint16_t    dual_watch_count_noaa_10ms       =    70 / 10;   // 70ms
 #endif
 
 #ifdef ENABLE_VOX
@@ -206,8 +204,8 @@ uint8_t           gFoundCTCSS;
 uint8_t           gFoundCDCSS;
 bool              gEndOfRxDetectedMaybe;
 
-int16_t           gVFO_RSSI[2];
-uint8_t           gVFO_RSSI_bar_level[2];
+int16_t           gVFO_RSSI[NUM_VFO_SLOTS];
+uint8_t           gVFO_RSSI_bar_level[NUM_VFO_SLOTS];
 
 uint8_t           gReducedService;
 uint8_t           gBatteryVoltageIndex;
@@ -267,7 +265,6 @@ bool              gKeyBeingHeld;
 bool              gPttIsPressed;
 uint8_t           gPttDebounceCounter;
 uint8_t           gMenuListCount;
-uint8_t           gBackup_CROSS_BAND_RX_TX;
 uint8_t           gScanDelay_10ms;
 uint8_t           gFSKWriteIndex;
 

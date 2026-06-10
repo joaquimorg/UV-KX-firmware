@@ -114,8 +114,8 @@ void Main(void)
     SETTINGS_WriteBuildOptions();
     SETTINGS_LoadCalibration();
 
-    RADIO_ConfigureChannel(0, VFO_CONFIGURE_RELOAD);
-    RADIO_ConfigureChannel(1, VFO_CONFIGURE_RELOAD);
+    for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+        RADIO_ConfigureChannel(i, VFO_CONFIGURE_RELOAD);
 
     RADIO_SelectVfos();
 
@@ -271,7 +271,7 @@ void Main(void)
     if(gEeprom.CURRENT_STATE == 2 || gEeprom.CURRENT_STATE == 5)
     {
             gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
-            gScanRangeStop = gEeprom.VfoInfo[!gEeprom.TX_VFO].freq_config_RX.Frequency;
+            gScanRangeStop = gEeprom.VfoInfo[(gEeprom.TX_VFO + 1) % NUM_VFO_SLOTS].freq_config_RX.Frequency;
             if(gScanRangeStart > gScanRangeStop)
             {
                 SWAP(gScanRangeStart, gScanRangeStop);
@@ -313,7 +313,7 @@ void Main(void)
     #ifdef ENABLE_FEAT_F4HWN_RESUME_STATE
         if (gEeprom.CURRENT_STATE == 2 || gEeprom.CURRENT_STATE == 5) {
             gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
-            gScanRangeStop = gEeprom.VfoInfo[!gEeprom.TX_VFO].freq_config_RX.Frequency;
+            gScanRangeStop = gEeprom.VfoInfo[(gEeprom.TX_VFO + 1) % NUM_VFO_SLOTS].freq_config_RX.Frequency;
             if (gScanRangeStart > gScanRangeStop) {
                 SWAP(gScanRangeStart, gScanRangeStop);
             }

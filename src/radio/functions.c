@@ -91,8 +91,8 @@ void FUNCTION_Foreground(const FUNCTION_Type_t PreviousFunction)
 
     if (PreviousFunction == FUNCTION_TRANSMIT) {
         //ST7565_FixInterfGlitch();
-        gVFO_RSSI_bar_level[0] = 0;
-        gVFO_RSSI_bar_level[1] = 0;
+        for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+            gVFO_RSSI_bar_level[i] = 0;
     } else if (PreviousFunction != FUNCTION_RECEIVE) {
         return;
     }

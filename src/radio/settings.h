@@ -68,15 +68,12 @@ enum {
 */
 
 enum {
-    CROSS_BAND_OFF = 0,
-    CROSS_BAND_CHAN_A,
-    CROSS_BAND_CHAN_B
+    CROSS_BAND_OFF = 0  // crossband removed; field kept for EEPROM compatibility, always OFF
 };
 
 enum {
     DUAL_WATCH_OFF = 0,
-    DUAL_WATCH_CHAN_A,
-    DUAL_WATCH_CHAN_B
+    DUAL_WATCH_ON       // watch cycles through all NUM_VFO_SLOTS slots
 };
 
 enum {
@@ -162,16 +159,15 @@ enum CHANNEL_DisplayMode_t {
 typedef enum CHANNEL_DisplayMode_t CHANNEL_DisplayMode_t;
 
 typedef struct {
-    uint8_t               ScreenChannel[2]; // current channels set in the radio (memory or frequency channels)
-    uint8_t               FreqChannel[2]; // last frequency channels used
-    uint8_t               MrChannel[2]; // last memory channels used
+    uint8_t               ScreenChannel[NUM_VFO_SLOTS]; // current channels set in the radio (memory or frequency channels)
+    uint8_t               FreqChannel[NUM_VFO_SLOTS]; // last frequency channels used
+    uint8_t               MrChannel[NUM_VFO_SLOTS]; // last memory channels used
 
-    // The actual VFO index (0-upper/1-lower) that is now used for RX, 
-    // It is being alternated by dual watch, and flipped by crossband
+    // The actual VFO slot index (0..NUM_VFO_SLOTS-1) that is now used for RX,
+    // cycled by the watch when DUAL_WATCH is on
     uint8_t               RX_VFO;
 
-    // The main VFO index (0-upper/1-lower) selected by the user
-    // 
+    // The main VFO slot index (0..NUM_VFO_SLOTS-1) selected by the user; TX always here
     uint8_t               TX_VFO;
 
     uint8_t               field7_0xa;
@@ -276,7 +272,7 @@ typedef struct {
     #endif
     uint8_t               DAC_GAIN;
 
-    VFO_Info_t            VfoInfo[2];
+    VFO_Info_t            VfoInfo[NUM_VFO_SLOTS];
     uint32_t              POWER_ON_PASSWORD;
     uint16_t              VOX1_THRESHOLD;
     uint16_t              VOX0_THRESHOLD;

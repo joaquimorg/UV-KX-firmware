@@ -219,10 +219,8 @@ const char gSubMenu_NA[4] =
 
 const char* const gSubMenu_RXMode[] =
 {
- "A ONLY",      // TX and RX on main only
- "A/B RX",      // Watch both and respond
- "CROSS A/B",   // TX on main, RX on secondary
- "A TX"         // always TX on main, but RX on both
+ "MAIN ONLY",   // TX and RX on selected slot only
+ "WATCH ALL"    // watch all 4 slots, TX on selected
 };
 
 #ifdef ENABLE_VOICE

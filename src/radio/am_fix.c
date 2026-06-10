@@ -214,13 +214,13 @@ typedef union  {
     unsigned int counter = 0;
 #endif
 
-unsigned int gain_table_index[2] = {0, 0};
+unsigned int gain_table_index[NUM_VFO_SLOTS];
 // used simply to detect a changed gain setting
-unsigned int gain_table_index_prev[2] = {0, 0};
+unsigned int gain_table_index_prev[NUM_VFO_SLOTS];
 // holds the previous RSSI level .. we do an average of old + new RSSI reading
-int16_t prev_rssi[2] = {0, 0};
+int16_t prev_rssi[NUM_VFO_SLOTS];
 // to help reduce gain hunting, peak hold count down tick
-unsigned int hold_counter[2] = {0, 0};
+unsigned int hold_counter[NUM_VFO_SLOTS];
 // -89dBm, any higher and the AM demodulator starts to saturate/clip/distort
 const int16_t desired_rssi = (-89 + 160) * 2;
 
@@ -229,7 +229,7 @@ bool enabled = true;
 
 void AM_fix_init(void)
 {   // called at boot-up
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < NUM_VFO_SLOTS; i++) {
         gain_table_index[i] = 0;  // re-start with original QS setting
     }
 #if !LOOKUP_TABLE
@@ -239,7 +239,7 @@ void AM_fix_init(void)
 
 void AM_fix_reset(const unsigned vfo)
 {   // reset the AM fixer upper
-    if (vfo > 1)
+    if (vfo >= NUM_VFO_SLOTS)
         return;
 
     #ifdef ENABLE_AM_FIX_SHOW_DATA
@@ -260,7 +260,7 @@ void AM_fix_reset(const unsigned vfo)
 //
 void AM_fix_10ms(const unsigned vfo)
 {
-    if(!gSetting_AM_fix || !enabled || vfo > 1 )
+    if(!gSetting_AM_fix || !enabled || vfo >= NUM_VFO_SLOTS )
         return;
 
     if (gCurrentFunction != FUNCTION_FOREGROUND && !FUNCTION_IsRx()) {
@@ -279,7 +279,7 @@ void AM_fix_10ms(const unsigned vfo)
     }
 #endif
 
-    static uint32_t lastFreq[2];
+    static uint32_t lastFreq[NUM_VFO_SLOTS];
     if(gEeprom.VfoInfo[vfo].pRX->Frequency != lastFreq[vfo]) {
         lastFreq[vfo] = gEeprom.VfoInfo[vfo].pRX->Frequency;
         AM_fix_reset(vfo);

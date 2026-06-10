@@ -72,9 +72,10 @@ void SETTINGS_InitEEPROM(void)
     gEeprom.BACKLIGHT_MIN_STAT    = BLMIN_STAT_ON;
 #endif
     gEeprom.CHANNEL_DISPLAY_MODE  = (Data[1] < 4) ? Data[1] : MDF_FREQUENCY;    // 4 instead of 3 - extra display mode
-    gEeprom.CROSS_BAND_RX_TX      = (Data[2] < 3) ? Data[2] : CROSS_BAND_OFF;
+    gEeprom.CROSS_BAND_RX_TX      = CROSS_BAND_OFF;   // crossband removed
     gEeprom.BATTERY_SAVE          = (Data[3] < 6) ? Data[3] : 4;
-    gEeprom.DUAL_WATCH            = (Data[4] < 3) ? Data[4] : DUAL_WATCH_CHAN_A;
+    // legacy values 1 (CHAN_A) / 2 (CHAN_B) both mean the watch was enabled
+    gEeprom.DUAL_WATCH            = (Data[4] == DUAL_WATCH_OFF) ? DUAL_WATCH_OFF : DUAL_WATCH_ON;
     gEeprom.BACKLIGHT_TIME        = (Data[5] < 62) ? Data[5] : 12;
     #ifdef ENABLE_FEAT_F4HWN_NARROWER
         gEeprom.TAIL_TONE_ELIMINATION = Data[6] & 0x01;
@@ -99,6 +100,15 @@ void SETTINGS_InitEEPROM(void)
     gEeprom.MrChannel[1]       = IS_MR_CHANNEL(Data[4])    ? Data[4] : MR_CHANNEL_FIRST;
     gEeprom.FreqChannel[0]     = IS_FREQ_CHANNEL(Data[2])  ? Data[2] : (FREQ_CHANNEL_FIRST + BAND6_400MHz);
     gEeprom.FreqChannel[1]     = IS_FREQ_CHANNEL(Data[5])  ? Data[5] : (FREQ_CHANNEL_FIRST + BAND6_400MHz);
+
+    // 1FB0..1FB7 - channel indices of the extra VFO slots C/D (free EEPROM area)
+    EEPROM_ReadBuffer(0x1FB0, Data, 8);
+    for (unsigned int i = 2; i < NUM_VFO_SLOTS; i++) {
+        const unsigned int o = (i - 2) * 3;
+        gEeprom.ScreenChannel[i] = IS_VALID_CHANNEL(Data[o + 0]) ? Data[o + 0] : (FREQ_CHANNEL_FIRST + BAND6_400MHz);
+        gEeprom.MrChannel[i]     = IS_MR_CHANNEL(Data[o + 1])    ? Data[o + 1] : MR_CHANNEL_FIRST;
+        gEeprom.FreqChannel[i]   = IS_FREQ_CHANNEL(Data[o + 2])  ? Data[o + 2] : (FREQ_CHANNEL_FIRST + BAND6_400MHz);
+    }
 
 #ifdef ENABLE_FMRADIO
     {   // 0E88..0E8F
@@ -174,7 +184,7 @@ void SETTINGS_InitEEPROM(void)
     #endif
     gEeprom.ROGER                          = (Data[1] <  3) ? Data[1] : ROGER_MODE_OFF;
     gEeprom.REPEATER_TAIL_TONE_ELIMINATION = (Data[2] < 11) ? Data[2] : 0;
-    gEeprom.TX_VFO                         = (Data[3] <  2) ? Data[3] : 0;
+    gEeprom.TX_VFO                         = (Data[3] < NUM_VFO_SLOTS) ? Data[3] : 0;
     gEeprom.BATTERY_TYPE                   = (Data[4] < BATTERY_TYPE_UNKNOWN) ? Data[4] : BATTERY_TYPE_1600_MAH;
 
     // 0ED0..0ED7
@@ -309,8 +319,8 @@ void SETTINGS_InitEEPROM(void)
 
     if (!gEeprom.VFO_OPEN)
     {
-        gEeprom.ScreenChannel[0] = gEeprom.MrChannel[0];
-        gEeprom.ScreenChannel[1] = gEeprom.MrChannel[1];
+        for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+            gEeprom.ScreenChannel[i] = gEeprom.MrChannel[i];
     }
 
     // 0D60..0E27
@@ -526,6 +536,10 @@ void SETTINGS_FactoryReset(bool bIsAll)
 
     if (bIsAll)
     {
+        // wipe the extra VFO slots C/D area (load-time validation restores defaults)
+        for (i = 0x1F90; i < 0x1FB8; i += 8)
+            EEPROM_WriteBuffer(i, Template);
+
         RADIO_InitInfo(gRxVfo, FREQ_CHANNEL_FIRST + BAND6_400MHz, 43350000);
 
         #ifdef ENABLE_FEAT_F4HWN_RESET_CHANNEL
@@ -589,6 +603,18 @@ void SETTINGS_SaveVfoIndices(void)
     State[5] = gEeprom.FreqChannel[1];
 
     EEPROM_WriteBuffer(0x0E80, State);
+
+    // slots C/D live in the free area at 0x1FB0
+    State[0] = gEeprom.ScreenChannel[2];
+    State[1] = gEeprom.MrChannel[2];
+    State[2] = gEeprom.FreqChannel[2];
+    State[3] = gEeprom.ScreenChannel[3];
+    State[4] = gEeprom.MrChannel[3];
+    State[5] = gEeprom.FreqChannel[3];
+    State[6] = 0xFF;
+    State[7] = 0xFF;
+
+    EEPROM_WriteBuffer(0x1FB0, State);
 }
 
 void SETTINGS_SaveSettings(void)
@@ -827,8 +853,13 @@ void SETTINGS_SaveChannel(uint8_t Channel, uint8_t VFO, const VFO_Info_t *pVFO, 
     uint16_t OffsetVFO = Channel * 16;
 
     if (IS_FREQ_CHANNEL(Channel)) { // it's a VFO, not a channel
-        OffsetVFO  = (VFO == 0) ? 0x0C80 : 0x0C90;
-        OffsetVFO += (Channel - FREQ_CHANNEL_FIRST) * 32;
+        if (VFO < 2) {
+            OffsetVFO  = (VFO == 0) ? 0x0C80 : 0x0C90;
+            OffsetVFO += (Channel - FREQ_CHANNEL_FIRST) * 32;
+        } else {
+            // slots C/D keep a single band-agnostic record in the free area
+            OffsetVFO = 0x1F90 + (VFO - 2) * 16;
+        }
     }
 
     if (Mode >= 2 || IS_FREQ_CHANNEL(Channel)) { // copy VFO to a channel

@@ -57,7 +57,7 @@ static void toggle_chan_scanlist(void)
 #ifdef ENABLE_SCAN_RANGES
     if (!IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
         gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
-        gScanRangeStop = gEeprom.VfoInfo[!gEeprom.TX_VFO].freq_config_RX.Frequency;
+        gScanRangeStop = gEeprom.VfoInfo[(gEeprom.TX_VFO + 1) % NUM_VFO_SLOTS].freq_config_RX.Frequency;
         if (gScanRangeStart > gScanRangeStop) {
             SWAP(gScanRangeStart, gScanRangeStop);
         }
@@ -68,7 +68,7 @@ static void toggle_chan_scanlist(void)
     if(!IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
 #ifdef ENABLE_SCAN_RANGES
         gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
-        gScanRangeStop = gEeprom.VfoInfo[!gEeprom.TX_VFO].freq_config_RX.Frequency;
+        gScanRangeStop = gEeprom.VfoInfo[(gEeprom.TX_VFO + 1) % NUM_VFO_SLOTS].freq_config_RX.Frequency;
         if(gScanRangeStart > gScanRangeStop)
             SWAP(gScanRangeStart, gScanRangeStop);
 #endif
@@ -217,9 +217,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
         case KEY_4:
             gWasFKeyPressed          = false;
 
-            gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
-            gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
-            gUpdateStatus            = true;        
+            gUpdateStatus            = true;
 
             SCANNER_Start(false);
             gRequestDisplayScreen = DISPLAY_SCANNER;
@@ -774,9 +772,6 @@ static void MAIN_Key_STAR(bool bKeyPressed, bool bKeyHeld)
         gWasFKeyPressed = false;
 
         // scan the CTCSS/DCS code
-        gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
-        gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
-
         SCANNER_Start(true);
         gRequestDisplayScreen = DISPLAY_SCANNER;
     }

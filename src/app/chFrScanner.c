@@ -25,7 +25,6 @@ typedef enum {
 
 scan_next_chan_t    currentScanList;
 uint32_t            initialFrqOrChan;
-uint8_t             initialCROSS_BAND_RX_TX;
 
 #ifndef ENABLE_FEAT_F4HWN
     uint32_t lastFoundFrqOrChan;
@@ -40,8 +39,6 @@ static void NextMemChannel(void);
 void CHFRSCANNER_Start(const bool storeBackupSettings, const int8_t scan_direction)
 {
     if (storeBackupSettings) {
-        initialCROSS_BAND_RX_TX = gEeprom.CROSS_BAND_RX_TX;
-        gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
         gScanKeepResult = false;
     }
     
@@ -187,11 +184,6 @@ void CHFRSCANNER_Found(void)
 
 void CHFRSCANNER_Stop(void)
 {
-    if(initialCROSS_BAND_RX_TX != CROSS_BAND_OFF) {
-        gEeprom.CROSS_BAND_RX_TX = initialCROSS_BAND_RX_TX;
-        initialCROSS_BAND_RX_TX = CROSS_BAND_OFF;
-    }
-    
     gScanStateDir = SCAN_OFF;
 
     const uint32_t chFr = gScanKeepResult ? lastFoundFrqOrChan : initialFrqOrChan;

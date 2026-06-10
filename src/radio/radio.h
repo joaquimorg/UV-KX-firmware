@@ -22,6 +22,7 @@
 
 #include "dcs.h"
 #include "frequencies.h"
+#include "misc.h"
 
 enum {
     RADIO_CHANNEL_UP   = 0x01u,
@@ -148,7 +149,7 @@ extern VFO_Info_t    *gCurrentVfo;
 
 extern DCS_CodeType_t gCurrentCodeType;
 
-extern VfoState_t     VfoState[2];
+extern VfoState_t     VfoState[NUM_VFO_SLOTS];
 
 bool     RADIO_CheckValidChannel(uint16_t channel, bool checkScanList, uint8_t scanList);
 uint8_t  RADIO_FindNextChannel(uint8_t ChNum, int8_t Direction, bool bCheckScanList, uint8_t RadioNum);

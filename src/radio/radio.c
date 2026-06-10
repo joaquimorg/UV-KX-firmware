@@ -48,7 +48,7 @@ VFO_Info_t    *gTxVfo;
 VFO_Info_t    *gRxVfo;
 VFO_Info_t    *gCurrentVfo;
 DCS_CodeType_t gCurrentCodeType;
-VfoState_t     VfoState[2];
+VfoState_t     VfoState[NUM_VFO_SLOTS];
 
 const char gModulationStr[MODULATION_UKNOWN][4] = {
     [MODULATION_FM]="FM",
@@ -237,8 +237,11 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
     uint16_t base;
     if (IS_MR_CHANNEL(channel))
         base = channel * 16;
-    else
+    else if (VFO < 2)
         base = 0x0C80 + ((channel - FREQ_CHANNEL_FIRST) * 32) + (VFO * 16);
+    else
+        // slots C/D keep a single band-agnostic record in the free area
+        base = 0x1F90 + (VFO - 2) * 16;
 
     if (configure == VFO_CONFIGURE_RELOAD || IS_FREQ_CHANNEL(channel))
     {
@@ -655,17 +658,15 @@ void RADIO_ApplyOffset(VFO_Info_t *pInfo)
 
 static void RADIO_SelectCurrentVfo(void)
 {
-    // if crossband is active and DW not the gCurrentVfo is gTxVfo (gTxVfo/TX_VFO is only ever changed by the user)
-    // otherwise it is set to gRxVfo which is set to gTxVfo in RADIO_SelectVfos
-    // so in the end gCurrentVfo is equal to gTxVfo unless dual watch changes it on incomming transmition (again, this can only happen when XB off)
+    // gCurrentVfo follows the RX VFO; the watch cycle re-points gRxVfo as it runs.
     // note: it is called only in certain situations so could be not up-to-date
-    gCurrentVfo = (gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF || gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) ? gRxVfo : gTxVfo;
+    gCurrentVfo = gRxVfo;
 }
 
 void RADIO_SelectVfos(void)
 {
-    // if crossband without DW is used then RX_VFO is the opposite to the TX_VFO
-    gEeprom.RX_VFO = (gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF || gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) ? gEeprom.TX_VFO : !gEeprom.TX_VFO;
+    // reset RX to the selected slot; the watch cycle moves it afterwards
+    gEeprom.RX_VFO = gEeprom.TX_VFO;
 
     gTxVfo = &gEeprom.VfoInfo[gEeprom.TX_VFO];
     gRxVfo = &gEeprom.VfoInfo[gEeprom.RX_VFO];
@@ -987,15 +988,14 @@ void RADIO_SetupAGC(bool listeningAM, bool disable)
 void RADIO_SetVfoState(VfoState_t State)
 {
     if (State == VFO_STATE_NORMAL) {
-        VfoState[0] = VFO_STATE_NORMAL;
-        VfoState[1] = VFO_STATE_NORMAL;
+        for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+            VfoState[i] = VFO_STATE_NORMAL;
     } else if (State == VFO_STATE_VOLTAGE_HIGH) {
         VfoState[0] = VFO_STATE_VOLTAGE_HIGH;
-        VfoState[1] = VFO_STATE_TX_DISABLE;
+        for (unsigned int i = 1; i < NUM_VFO_SLOTS; i++)
+            VfoState[i] = VFO_STATE_TX_DISABLE;
     } else {
-        // 1of11
-        const unsigned int vfo = (gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF) ? gEeprom.RX_VFO : gEeprom.TX_VFO;
-        VfoState[vfo] = State;
+        VfoState[gEeprom.RX_VFO] = State;
     }
 
     gVFOStateResumeCountdown_500ms = (State == VFO_STATE_NORMAL) ? 0 : vfo_state_resume_countdown_500ms;

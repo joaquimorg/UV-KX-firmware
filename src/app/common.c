@@ -28,12 +28,7 @@ void COMMON_SwitchVFOs()
 #ifdef ENABLE_SCAN_RANGES    
     gScanRangeStart = 0;
 #endif
-    gEeprom.TX_VFO ^= 1;
-
-    if (gEeprom.CROSS_BAND_RX_TX != CROSS_BAND_OFF)
-        gEeprom.CROSS_BAND_RX_TX = gEeprom.TX_VFO + 1;
-    if (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF)
-        gEeprom.DUAL_WATCH = gEeprom.TX_VFO + 1;
+    gEeprom.TX_VFO = (gEeprom.TX_VFO + 1) % NUM_VFO_SLOTS;
 
     gRequestSaveSettings  = 1;
     gFlagReconfigureVfos  = true;
