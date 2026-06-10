@@ -620,7 +620,10 @@ void UI_DisplayMain(void)
         {
             UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, !rxRow, false, false, "M-%03u", gEeprom.ScreenChannel[slot] + 1);
         }
-        // frequency mode without a name: the frequency on the right is enough
+        else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[slot]))
+        {
+            UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, !rxRow, false, false, "F-%03u", 1 + gEeprom.ScreenChannel[slot] - FREQ_CHANNEL_FIRST);
+        }
 
         // frequency, right aligned in the small font
         UI_SetFont(FONT_5_TR);
