@@ -131,13 +131,6 @@ static void CheckForIncoming(void)
         if (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF)
         {   // dual watch is disabled
 
-            #ifdef ENABLE_NOAA
-                if (gIsNoaaMode)
-                {
-                    gNOAA_Countdown_10ms = NOAA_countdown_3_10ms;
-                    gScheduleNOAA        = false;
-                }
-            #endif
 
             if (gCurrentFunction != FUNCTION_INCOMING)
             {
@@ -208,12 +201,6 @@ static void HandleIncoming(void)
 
     bool bFlag = (gScanStateDir == SCAN_OFF && gCurrentCodeType == CODE_TYPE_OFF);
 
-#ifdef ENABLE_NOAA
-    if (IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE) && gNOAACountdown_10ms > 0) {
-        gNOAACountdown_10ms = 0;
-        bFlag               = true;
-    }
-#endif
 
     if (g_CTCSS_Lost && gCurrentCodeType == CODE_TYPE_CONTINUOUS_TONE) {
         bFlag       = true;
@@ -308,11 +295,7 @@ static void HandleReceive(void)
 
     if (g_SquelchLost)
     {
-        #ifdef ENABLE_NOAA
-            if (!gEndOfRxDetectedMaybe && !IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE))
-        #else
             if (!gEndOfRxDetectedMaybe)
-        #endif
         {
             switch (gCurrentCodeType)
             {
@@ -393,10 +376,6 @@ Skip:
         case END_OF_RX_MODE_END:
             RADIO_SetupRegisters(true);
 
-            #ifdef ENABLE_NOAA
-                if (IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE))
-                    gNOAACountdown_10ms = 300;         // 3 sec
-            #endif
 
             gUpdateDisplay = true;
 
@@ -540,17 +519,6 @@ void APP_StartListening(FUNCTION_Type_t function)
     if (gScanStateDir != SCAN_OFF)
         CHFRSCANNER_Found();
 
-#ifdef ENABLE_NOAA
-    if (IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE) && gIsNoaaMode) {
-        gRxVfo->CHANNEL_SAVE        = gNoaaChannel + NOAA_CHANNEL_FIRST;
-        gRxVfo->pRX->Frequency      = NoaaFrequencyTable[gNoaaChannel];
-        gRxVfo->pTX->Frequency      = NoaaFrequencyTable[gNoaaChannel];
-        gEeprom.ScreenChannel[vfo] = gRxVfo->CHANNEL_SAVE;
-
-        gNOAA_Countdown_10ms        = 500;   // 5 sec
-        gScheduleNOAA               = false;
-    }
-#endif
 
     if (gScanStateDir == SCAN_OFF &&
         gEeprom.DUAL_WATCH != DUAL_WATCH_OFF)
@@ -618,31 +586,9 @@ uint32_t APP_SetFrequencyByStep(VFO_Info_t *pInfo, int8_t direction)
     return APP_SetFreqByStepAndLimits(pInfo, direction, frequencyBandTable[pInfo->Band].lower, frequencyBandTable[pInfo->Band].upper);
 }
 
-#ifdef ENABLE_NOAA
-    static void NOAA_IncreaseChannel(void)
-    {
-        if (++gNoaaChannel > 9)
-            gNoaaChannel = 0;
-    }
-#endif
 
 static void DualwatchAlternate(void)
 {
-    #ifdef ENABLE_NOAA
-        if (gIsNoaaMode)
-        {
-            if (!IS_NOAA_CHANNEL(gEeprom.ScreenChannel[0]) || !IS_NOAA_CHANNEL(gEeprom.ScreenChannel[1]))
-                gEeprom.RX_VFO = (gEeprom.RX_VFO + 1) & 1;
-            else
-                gEeprom.RX_VFO = 0;
-
-            gRxVfo = &gEeprom.VfoInfo[gEeprom.RX_VFO];
-
-            if (IS_NOAA_CHANNEL(gEeprom.VfoInfo[0].CHANNEL_SAVE))
-                NOAA_IncreaseChannel();
-        }
-        else
-    #endif
     {   // toggle between VFO's
         gEeprom.RX_VFO = !gEeprom.RX_VFO;
         gRxVfo         = &gEeprom.VfoInfo[gEeprom.RX_VFO];
@@ -656,11 +602,7 @@ static void DualwatchAlternate(void)
 
     RADIO_SetupRegisters(false);
 
-    #ifdef ENABLE_NOAA
-        gDualWatchCountdown_10ms = gIsNoaaMode ? dual_watch_count_noaa_10ms : dual_watch_count_toggle_10ms;
-    #else
         gDualWatchCountdown_10ms = dual_watch_count_toggle_10ms;
-    #endif
 }
 
 static void CheckRadioInterrupts(void)
@@ -1024,20 +966,6 @@ void APP_Update(void)
         CHFRSCANNER_ContinueScanning();
     }
 
-#ifdef ENABLE_NOAA
-#ifdef ENABLE_VOICE
-        if (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF && gIsNoaaMode && gScheduleNOAA && gVoiceWriteIndex == 0)
-#else
-        if (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF && gIsNoaaMode && gScheduleNOAA)
-#endif
-        {
-            NOAA_IncreaseChannel();
-            RADIO_SetupRegisters(false);
-
-            gNOAA_Countdown_10ms = 7;      // 70ms
-            gScheduleNOAA        = false;
-        }
-#endif
 
     // toggle between the VFO's if dual watch is enabled
     if (!SCANNER_IsScanning()
@@ -1099,9 +1027,6 @@ void APP_Update(void)
 #endif
 #ifdef ENABLE_DTMF_CALLING
             || gDTMF_CallState != DTMF_CALL_STATE_NONE
-#endif
-#ifdef ENABLE_NOAA
-            || (gIsNoaaMode && (IS_NOAA_CHANNEL(gEeprom.ScreenChannel[0]) || IS_NOAA_CHANNEL(gEeprom.ScreenChannel[1])))
 #endif
         ) {
             gBatterySaveCountdown_10ms = battery_save_count_10ms;
@@ -2265,9 +2190,6 @@ Skip:
     if (gFlagReconfigureVfos) {
         RADIO_SelectVfos();
 
-#ifdef ENABLE_NOAA
-        RADIO_ConfigureNOAA();
-#endif
 
         RADIO_SetupRegisters(true);
 

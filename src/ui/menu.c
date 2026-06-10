@@ -78,9 +78,6 @@ const t_menu_item MenuList[] =
     #endif
         {"SCN REV",     MENU_SC_REV        },
     #ifndef ENABLE_FEAT_F4HWN
-        #ifdef ENABLE_NOAA
-            {"NOAA-S",  MENU_NOAA_S    },
-        #endif
     #endif
         {"F1 SHORT",    MENU_F1SHRT        },
         {"F1 LONG",     MENU_F1LONG        },
@@ -156,9 +153,6 @@ const t_menu_item MenuList[] =
     #endif
     #ifdef ENABLE_FEAT_F4HWN_RESCUE_OPS
         {"SET KEY",     MENU_SET_KEY       },
-    #endif
-    #ifdef ENABLE_NOAA
-        {"SET NWR",     MENU_NOAA_S    },
     #endif
     #endif
     #ifdef ENABLE_FEAT_F4HWN
@@ -1144,9 +1138,6 @@ static const char* UI_MENU_GetOptionLinesForId(int menuId)
     case MENU_D_DCD:
 #endif
     case MENU_D_LIVE_DEC:
-#ifdef ENABLE_NOAA
-    case MENU_NOAA_S:
-#endif
 #ifndef ENABLE_FEAT_F4HWN
     //case MENU_350TX:
     //case MENU_200TX:

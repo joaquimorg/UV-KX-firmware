@@ -170,9 +170,6 @@ void Main(void)
                 gMenuCursor = 68; // move to hidden section, fix me if change... !!!
             #endif
 
-            #ifdef ENABLE_NOAA
-                gMenuCursor += 1; // move to hidden section, fix me if change... !!!
-            #endif
             #ifdef ENABLE_FEAT_F4HWN_RESCUE_OPS
                 gMenuCursor += 1; // move to hidden section, fix me if change... !!!
             #endif
@@ -267,9 +264,6 @@ void Main(void)
         }
 #endif
 
-#ifdef ENABLE_NOAA
-        RADIO_ConfigureNOAA();
-#endif
     }
 
     /*

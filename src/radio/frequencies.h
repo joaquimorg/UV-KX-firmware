@@ -76,9 +76,6 @@ typedef enum {
 
 extern const uint16_t gStepFrequencyTable[];
 
-#ifdef ENABLE_NOAA
-    extern const uint32_t NoaaFrequencyTable[10];
-#endif
 
 FREQUENCY_Band_t FREQUENCY_GetBand(uint32_t Frequency);
 uint8_t          FREQUENCY_CalculateOutputPower(uint8_t TxpLow, uint8_t TxpMid, uint8_t TxpHigh, int32_t LowerLimit, int32_t Middle, int32_t UpperLimit, int32_t Frequency);

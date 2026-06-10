@@ -80,10 +80,6 @@ const uint16_t    power_save2_10ms                 =   200 / 10;   // 200ms
     const uint16_t    vox_stop_count_down_10ms         =  1000 / 10;   // 1 second
 #endif
 
-const uint16_t    NOAA_countdown_10ms              =  5000 / 10;   // 5 seconds
-const uint16_t    NOAA_countdown_2_10ms            =   500 / 10;   // 500ms
-const uint16_t    NOAA_countdown_3_10ms            =   200 / 10;   // 200ms
-
 const uint32_t    gDefaultAesKey[4]                = {0x4AA5CC60, 0x0312CC5F, 0xFFD2DABB, 0x6BBA7F92};
 
 const uint8_t     gMicGain_dB2[5]                  = {3, 8, 16, 24, 31};
@@ -199,9 +195,6 @@ volatile uint16_t gTailNoteEliminationCountdown_10ms;
 
 volatile uint8_t    gVFOStateResumeCountdown_500ms;
 
-#ifdef ENABLE_NOAA
-    volatile uint16_t gNOAA_Countdown_10ms;
-#endif
 
 bool              gEnableSpeaker;
 uint8_t           gKeyInputCountdown = 0;
@@ -278,10 +271,6 @@ uint8_t           gBackup_CROSS_BAND_RX_TX;
 uint8_t           gScanDelay_10ms;
 uint8_t           gFSKWriteIndex;
 
-#ifdef ENABLE_NOAA
-    bool          gIsNoaaMode;
-    uint8_t       gNoaaChannel;
-#endif
 
 bool              gUpdateDisplay;
 
@@ -296,10 +285,6 @@ volatile uint8_t  gFoundCTCSSCountdown_10ms;
     volatile uint16_t gVoxStopCountdown_10ms;
 #endif
 volatile bool     gNextTimeslice40ms;
-#ifdef ENABLE_NOAA
-    volatile uint16_t gNOAACountdown_10ms = 0;
-    volatile bool     gScheduleNOAA       = true;
-#endif
 volatile bool     gFlagTailNoteEliminationComplete;
 #ifdef ENABLE_FMRADIO
     volatile bool gScheduleFM;

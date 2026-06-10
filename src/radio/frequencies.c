@@ -45,21 +45,6 @@ const freq_band_table_t frequencyBandTable[] =
         [BAND6_400MHz]={.lower = 40000000,  .upper = 47000000}
 };
 
-#ifdef ENABLE_NOAA
-    const uint32_t NoaaFrequencyTable[10] =
-    {
-        16255000,
-        16240000,
-        16247500,
-        16242500,
-        16245000,
-        16250000,
-        16252500,
-        16152500,
-        16177500,
-        16327500
-    };
-#endif
 
 
 // this order of steps has to be preserved for backwards compatibility with other/stock firmwares

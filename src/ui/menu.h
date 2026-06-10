@@ -107,9 +107,6 @@ enum
     MENU_AM_FIX,
 #endif
 #ifndef ENABLE_FEAT_F4HWN
-    #ifdef ENABLE_NOAA
-        MENU_NOAA_S,
-    #endif
 #endif
     MENU_RESET,
     MENU_F_LOCK,
@@ -147,9 +144,6 @@ enum
     #endif
     #ifdef ENABLE_FEAT_F4HWN_RESCUE_OPS
         MENU_SET_KEY,
-    #endif
-    #ifdef ENABLE_NOAA
-        MENU_NOAA_S,
     #endif
 #endif
     MENU_BATCAL,  // battery voltage calibration

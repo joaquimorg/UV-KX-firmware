@@ -78,13 +78,6 @@ void FUNCTION_Init(void)
     DTMF_clear_RX();
 #endif
 
-#ifdef ENABLE_NOAA
-    gNOAACountdown_10ms = 0;
-
-    if (IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE)) {
-        gCurrentCodeType = CODE_TYPE_OFF;
-    }
-#endif
 
     gUpdateStatus = true;
 }

@@ -158,9 +158,6 @@ void     RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo);
 void     RADIO_ApplyOffset(VFO_Info_t *pInfo);
 void     RADIO_SelectVfos(void);
 void     RADIO_SetupRegisters(bool switchToForeground);
-#ifdef ENABLE_NOAA
-    void RADIO_ConfigureNOAA(void);
-#endif
 void     RADIO_SetTxParameters(void);
 void     RADIO_SetupAGC(bool listeningAM, bool disable);
 void     RADIO_SetModulation(ModulationMode_t modulation);
