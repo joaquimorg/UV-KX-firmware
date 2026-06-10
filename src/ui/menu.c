@@ -421,7 +421,7 @@ const t_sidefunction gSubMenu_SIDEFUNCTIONS[] =
     {"REGA TEST",      ACTION_OPT_REGA_TEST},
 #endif
     {"LOCK KEYPAD",    ACTION_OPT_KEYLOCK},
-    {"VFO A/B",    ACTION_OPT_A_B},
+    {"VFO A-D",    ACTION_OPT_A_B},
     {"VFO MEM",        ACTION_OPT_VFO_MR},
     {"MODE",            ACTION_OPT_SWITCH_DEMODUL},
 #ifdef ENABLE_BLMIN_TMP_OFF

@@ -421,40 +421,39 @@ void UI_DisplayMain(void)
     // clear the screen
     UI_ClearDisplay();    
 
-    unsigned int activeTxVFO = gRxVfoIsActive ? gEeprom.RX_VFO : gEeprom.TX_VFO;
-    unsigned int vfoA = gEeprom.TX_VFO == 0 ? 0 : 1;
-    unsigned int vfoB = gEeprom.TX_VFO == 0 ? 1 : 0;
+    // the selected slot is always shown in detail at the top, the other
+    // three slots are drawn as compact rows below it
+    const unsigned int sel = gEeprom.TX_VFO;
 
-    uint32_t displayFreqVFO1 = gEeprom.VfoInfo[vfoA].pRX->Frequency;
-    uint32_t displayFreqVFO2 = gEeprom.VfoInfo[vfoB].pRX->Frequency;
+    uint32_t displayFreqVFO1 = gEeprom.VfoInfo[sel].pRX->Frequency;
 
-    const VFO_Info_t *vfoInfoA = &gEeprom.VfoInfo[vfoA];
-    const VFO_Info_t *vfoInfoB = &gEeprom.VfoInfo[vfoB];
+    const VFO_Info_t *vfoInfoA = &gEeprom.VfoInfo[sel];
 
-    bool rxVFO1 = false;
-    bool rxVFO2 = false;
+    bool rxSlot[NUM_VFO_SLOTS] = {false};
     bool txVFO1 = false;
 
     if (gCurrentFunction == FUNCTION_TRANSMIT)
     {   // transmitting
         txVFO1 = true;
-        displayFreqVFO1 = gEeprom.VfoInfo[vfoA].pTX->Frequency;
+        displayFreqVFO1 = gEeprom.VfoInfo[sel].pTX->Frequency;
     }
     else
-    {   // receiving .. 
+    {   // receiving ..
 
         if (FUNCTION_IsRx())
         {
-            rxVFO1 = (gEeprom.RX_VFO == vfoA && VfoState[vfoA] == VFO_STATE_NORMAL);
-            rxVFO2 = (gEeprom.RX_VFO == vfoB && VfoState[vfoB] == VFO_STATE_NORMAL);
+            const unsigned int rx = gEeprom.RX_VFO;
+            rxSlot[rx] = (VfoState[rx] == VFO_STATE_NORMAL);
 
-            if ((rxVFO1 || rxVFO2) && gEeprom.RX_VFO < 2) {
-                gLastRxVfo = gEeprom.RX_VFO;
+            if (rxSlot[rx]) {
+                gLastRxVfo = rx;
                 gLastRxVfoValid = true;
                 gLastRxBlinkCountdown = 240; // 120s (500ms steps)
             }
         }
     }
+
+    const bool rxVFO1 = rxSlot[sel];
 
     const bool blinkActive = gLastRxVfoValid && (gLastRxBlinkCountdown > 0);
     const bool lastRxBlinkPhase = blinkActive && (((gFlashLightBlinkCounter / 50u) & 1u) == 0u); // ~500ms toggle (10ms units)
@@ -466,10 +465,10 @@ void UI_DisplayMain(void)
 
     UI_SetFont(FONT_8B_TR);
 
-    SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[vfoA]);
+    SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[sel]);
     if (String[0] == 0)
     {   // no channel name, show the channel number instead
-        // UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 6, false, false, false, "CH-%03u", gEeprom.ScreenChannel[vfoA] + 1);
+        
         // TODO
         // Show Band name
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, 6, false, false, false, "VFO");
@@ -478,10 +477,11 @@ void UI_DisplayMain(void)
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, 6, false, false, false, String);
     }
 
-    const bool lastRxIsVfoA = (gLastRxVfoValid && gLastRxVfo == vfoA);
-    const bool vfoALabelFill = (!blinkActive || !lastRxIsVfoA) ? true : lastRxBlinkPhase;
-    if (vfoALabelFill) {
-        UI_DrawString(UI_TEXT_ALIGN_LEFT, 2, 0, 14, true, true, false, vfoA == 0 ? "A" : "B");
+    const char selLetter[2] = {(char)('A' + sel), 0};
+    const bool lastRxIsSel = (gLastRxVfoValid && gLastRxVfo == sel);
+    const bool selLabelFill = (!blinkActive || !lastRxIsSel) ? true : lastRxBlinkPhase;
+    if (selLabelFill) {
+        UI_DrawString(UI_TEXT_ALIGN_LEFT, 2, 0, 14, true, true, false, selLetter);
     }
     if (rxVFO1) {
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, 14, true, true, false, UI_RX_STR);
@@ -489,14 +489,14 @@ void UI_DisplayMain(void)
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, 14, true, true, false, UI_TX_STR);
     }
 
-    if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfoA]))
+    if (IS_MR_CHANNEL(gEeprom.ScreenChannel[sel]))
     {   // channel mode
-        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 21, true, false, false, "M-%03u", gEeprom.ScreenChannel[vfoA] + 1);
+        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 21, true, false, false, "M-%03u", gEeprom.ScreenChannel[sel] + 1);
     }
-    else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfoA]))
+    else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[sel]))
     {   // frequency mode
         // show the frequency band number
-        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 21, true, false, false, "F-%03u", 1 + gEeprom.ScreenChannel[vfoA] - FREQ_CHANNEL_FIRST);
+        UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, 21, true, false, false, "F-%03u", 1 + gEeprom.ScreenChannel[sel] - FREQ_CHANNEL_FIRST);
     }
 
     if(gCurrentFunction == FUNCTION_TRANSMIT && gSetting_set_tmr == true)
@@ -583,64 +583,43 @@ void UI_DisplayMain(void)
     UI_DrawFrequencyBig(invertFreqVFO1, displayFreqVFO1, 111, 19);
 
 
-    // draw VFO2 area
-    uint8_t vfoBY = 28;
+    // draw the three secondary slots as compact rows
+    // row layout: slot letter badge | channel name / number | frequency
 
-    UI_SetBlackColor();
-    UI_DrawBox(0, vfoBY, 128, 7);
-    
-    UI_SetFont(FONT_8_TR);
-    SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[vfoB]);
-    if (String[0] == 0)
-    {   // no channel name, show the channel number instead
-        //UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 1, 0, vfoBY + 6, false, false, false, "CH-%03u", gEeprom.ScreenChannel[vfoB] + 1);
-        // TODO
-        // Show Band name
-        UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, vfoBY + 6, false, false, false, "VFO");
-    } else {
-        // show the channel name
-        UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, vfoBY + 6, false, false, false, String);
-    }
-
-    const ModulationMode_t modB = vfoInfoB->Modulation;    
-    const char* bandwidthB = UI_GetStrValue(UI_BANDWIDTH_STR, (uint8_t)vfoInfoB->CHANNEL_BANDWIDTH);
-    uint8_t currentPowerB = vfoInfoB->OUTPUT_POWER % 8;
-    if(currentPowerB == OUTPUT_POWER_USER)
+    for (unsigned int i = 0; i < NUM_VFO_SLOTS - 1; i++)
     {
-        currentPowerB = gSetting_set_pwr;
-    }
-    else
-    {
-        currentPowerB--;
-    }    
+        const unsigned int slot = (sel + 1 + i) % NUM_VFO_SLOTS;
+        const uint8_t rowBase = 35 + i * 8;    // text baseline of this row
+        const bool rxRow = rxSlot[slot];
+        const char slotLetter[2] = {(char)('A' + slot), 0};
 
-    UI_SetFont(FONT_5_TR);
-    const char* powerB = UI_GetStrValue(UI_POWER_STR, currentPowerB);
-    UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 127, vfoBY + 6, false, false, false, "%.*s %.*s %.*s", UI_StringLengthNL(gModulationStr[modB]), gModulationStr[modB], UI_StringLengthNL(bandwidthB), bandwidthB, UI_StringLengthNL(powerB), powerB);
+        // slot letter badge - inverted while receiving, blinking while last-RX
+        UI_SetFont(FONT_8_TR);
+        const bool lastRxIsRow = (gLastRxVfoValid && gLastRxVfo == slot);
+        const bool rowLabelFill = rxRow || ((blinkActive && lastRxIsRow) ? !lastRxBlinkPhase : false);
+        UI_DrawString(UI_TEXT_ALIGN_LEFT, 3, 0, rowBase, true, rowLabelFill, false, slotLetter);
 
-    UI_SetFont(FONT_8B_TR);
-    const bool lastRxIsVfoB = (gLastRxVfoValid && gLastRxVfo == vfoB);
-    const bool vfoBLabelFill = (blinkActive && lastRxIsVfoB) ? !lastRxBlinkPhase : true;
-    if (vfoBLabelFill) {
-        UI_DrawString(UI_TEXT_ALIGN_LEFT, 2, 0, vfoBY + 15, true, false, true, vfoB == 0 ? "A" : "B");
-    }
-    if (rxVFO2)
-    {
-        UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, vfoBY + 15, true, true, false, UI_RX_STR);
-    } else {
-        UI_SetFont(FONT_5_TR);
-        // not receiving on VFO2
-        if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfoB]))
-        {   // channel mode
-            UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, vfoBY + 15, true, false, false, "M-%03u", gEeprom.ScreenChannel[vfoB] + 1);
+        // channel name (or number) in the middle of the row
+        SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[slot]);
+        if (String[0] != 0)
+        {
+            String[10] = 0;    // keep clear of the frequency on the right
+            UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, true, false, false, String);
         }
-        else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfoB]))
-        {   // frequency mode
-            // show the frequency band number
-            UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, vfoBY + 15, true, false, false, "F-%03u", 1 + gEeprom.ScreenChannel[vfoB] - FREQ_CHANNEL_FIRST);
+        else if (IS_MR_CHANNEL(gEeprom.ScreenChannel[slot]))
+        {
+            UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, true, false, false, "M-%03u", gEeprom.ScreenChannel[slot] + 1);
         }
+        // frequency mode without a name: the frequency on the right is enough
+
+        // frequency, right aligned - inverted while receiving
+        const uint32_t frequency = gEeprom.VfoInfo[slot].pRX->Frequency;
+        UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 126, rowBase, true, rxRow, false,
+                       "%lu.%03lu.%02lu",
+                       frequency / 100000,
+                       (frequency / 100) % 1000,
+                       frequency % 100);
     }
-    UI_DrawFrequencySmall(rxVFO2, displayFreqVFO2, 126, vfoBY + 17);
 
 
     // draw bottom status area
@@ -699,24 +678,17 @@ void UI_DisplayMain(void)
 
     DisplayRSSIBar(false);
 
-    enum VfoState_t stateA = VfoState[0];
-    enum VfoState_t stateB = VfoState[1];
-
-
     // TODO : use UI_SetInfoMessage
-    if (stateA != VFO_STATE_NORMAL || stateB != VFO_STATE_NORMAL)
+    for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
     {
-        UI_DrawPopupWindow(20, 20, 88, 28, "Info");
-        UI_SetFont(FONT_8B_TR);
-        if (stateA != VFO_STATE_NORMAL)
+        if (VfoState[i] != VFO_STATE_NORMAL)
         {
-            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 36, true, false, false, "VFO A");            
-            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 44, true, false, false, VfoStateStr[stateA]);
-        } else if (stateB != VFO_STATE_NORMAL)
-        {
-            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 36, true, false, false, "VFO B");
-            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 44, true, false, false, VfoStateStr[stateB]);   
-        }        
+            UI_DrawPopupWindow(20, 20, 88, 28, "Info");
+            UI_SetFont(FONT_8B_TR);
+            UI_DrawStringf(UI_TEXT_ALIGN_CENTER, 22, 106, 36, true, false, false, "VFO %c", 'A' + i);
+            UI_DrawString(UI_TEXT_ALIGN_CENTER, 22, 106, 44, true, false, false, VfoStateStr[VfoState[i]]);
+            break;
+        }
     }
 
     if(gLowBattery && !gLowBatteryConfirmed) {
