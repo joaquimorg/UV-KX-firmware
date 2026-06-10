@@ -600,7 +600,7 @@ void UI_DisplayMain(void)
         if (rxRow)
         {
             UI_SetBlackColor();
-            UI_DrawBox(0, rowBase - 7, 128, 8);
+            UI_DrawBox(0, rowBase - 6, 128, 7);
         }
 
         // slot letter badge - blinking while last-RX
