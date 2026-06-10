@@ -418,10 +418,29 @@ void UI_MAIN_TimeSlice500ms(void)
 
 // ***************************************************************************
 
+// draws one CTCSS/DCS code value ("RX 88.5Hz", "TX 023N", ...) right
+// aligned at xend on the detail block baseline
+static void DrawToneCode(const char *prefix, const FREQ_Config_t *pConfig, bool highlight, uint8_t xend)
+{
+    switch (pConfig->CodeType)
+    {
+        case CODE_TYPE_CONTINUOUS_TONE:
+            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, xend, 26, true, highlight, false, "%s %u.%u%s",
+                           prefix, CTCSS_Options[pConfig->Code] / 10, CTCSS_Options[pConfig->Code] % 10, UI_HZ_STR);
+            break;
+        case CODE_TYPE_DIGITAL:
+        case CODE_TYPE_REVERSE_DIGITAL:
+            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, xend, 26, true, highlight, false, "%s %03o%c",
+                           prefix, DCS_Options[pConfig->Code],
+                           pConfig->CodeType == CODE_TYPE_DIGITAL ? 'N' : 'I');
+            break;
+        default:
+            break;
+    }
+}
+
 void UI_DisplayMain(void)
 {
-    char               String[22];
-
     center_line = CENTER_LINE_NONE;
 
     // clear the screen
@@ -520,38 +539,19 @@ void UI_DisplayMain(void)
 
     const FREQ_Config_t *pConfigRX = vfoInfoA->pRX;
     const FREQ_Config_t *pConfigTX = vfoInfoA->pTX;
-    const unsigned int code_type = pConfigRX->CodeType;
-    
-    if ( pConfigRX->CodeType == CODE_TYPE_OFF && pConfigTX->CodeType == CODE_TYPE_OFF ) {        
+
+    if ( pConfigRX->CodeType == CODE_TYPE_OFF && pConfigTX->CodeType == CODE_TYPE_OFF ) {
         UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, false, false,
                        "%d.%02uK", vfoInfoA->StepFrequency / 100, vfoInfoA->StepFrequency % 100);
-    } else {        
-        // RX code
-        if ( pConfigRX->CodeType == CODE_TYPE_CONTINUOUS_TONE )
-        {
-            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, g_CTCSS_Lost, false, "%s %u.%u%s", UI_RX_STR, CTCSS_Options[pConfigRX->Code] / 10, CTCSS_Options[pConfigRX->Code] % 10, UI_HZ_STR);
-        } else if ( pConfigRX->CodeType == CODE_TYPE_DIGITAL )
-        {
-            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, g_CDCSS_Lost, false, "%s %03oN", UI_RX_STR, DCS_Options[pConfigRX->Code]);
-        } else if ( pConfigRX->CodeType == CODE_TYPE_REVERSE_DIGITAL )
-        {
-            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, g_CDCSS_Lost, false, "%s %03oI", UI_RX_STR, DCS_Options[pConfigRX->Code]);
-        }
+    } else {
+        DrawToneCode(UI_RX_STR, pConfigRX,
+                     pConfigRX->CodeType == CODE_TYPE_CONTINUOUS_TONE ? g_CTCSS_Lost : g_CDCSS_Lost,
+                     codeXend);
         if (pConfigRX->CodeType != CODE_TYPE_OFF) {
             codeXend -= 48;
         }
 
-        // TX code
-        if ( pConfigTX->CodeType == CODE_TYPE_CONTINUOUS_TONE )
-        {
-            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, txVFO1, false, "%s %u.%u%s", UI_TX_STR, CTCSS_Options[pConfigTX->Code] / 10, CTCSS_Options[pConfigTX->Code] % 10, UI_HZ_STR);
-        } else if ( pConfigTX->CodeType == CODE_TYPE_DIGITAL )
-        {
-            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, txVFO1, false, "%s %03oN", UI_TX_STR, DCS_Options[pConfigTX->Code]);
-        } else if ( pConfigTX->CodeType == CODE_TYPE_REVERSE_DIGITAL )
-        {
-            UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, codeXend, 26, true, txVFO1, false, "%s %03oI", UI_TX_STR, DCS_Options[pConfigTX->Code]);
-        }
+        DrawToneCode(UI_TX_STR, pConfigTX, txVFO1, codeXend);
     }
 
     const ModulationMode_t modA = vfoInfoA->Modulation;    
@@ -642,15 +642,16 @@ void UI_DisplayMain(void)
 
     UI_SetFont(FONT_5_TR);
     // Status info
-    if (gChargingWithTypeC) 
+    const uint8_t batteryPercent = BATTERY_VoltsToPercent(gBatteryVoltageAverage);
+    if (gChargingWithTypeC)
     {
         UI_DrawIc8Charging(114, 52, true);
     }
-    else 
+    else
     {
-        UI_DrawBatteryIcon(BATTERY_VoltsToPercent(gBatteryVoltageAverage), 114, 52);
+        UI_DrawBatteryIcon(batteryPercent, 114, 52);
     }
-    UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 128, 64, true, false, false, "%i%%", BATTERY_VoltsToPercent(gBatteryVoltageAverage));
+    UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 128, 64, true, false, false, "%i%%", batteryPercent);
 
     //
 
