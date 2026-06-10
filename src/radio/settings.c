@@ -656,7 +656,7 @@ void SETTINGS_SaveSettings(void)
     #ifdef ENABLE_FEAT_F4HWN
         if(!gSaveRxMode)
         {
-            State[2] = gCB;
+            State[2] = CROSS_BAND_OFF;
             State[4] = gDW;
         }
         if(gBackLight)
@@ -799,28 +799,6 @@ void SETTINGS_SaveSettings(void)
 
 #ifdef ENABLE_FEAT_F4HWN
     EEPROM_ReadBuffer(0x1FF0, State, sizeof(State));
-
-    //memset(State, 0xFF, sizeof(State));
-
-    /*
-    tmp = 0;
-
-    if(gSetting_set_tmr == 1)
-        tmp = tmp | (1 << 0);
-
-    State[4] = tmp;
-
-    tmp = 0;
-
-    if(gSetting_set_inv == 1)
-        tmp = tmp | (1 << 0);
-    if (gSetting_set_lck == 1)
-        tmp = tmp | (1 << 1);
-    if (gSetting_set_met == 1)
-        tmp = tmp | (1 << 2);
-    if (gSetting_set_gui == 1)
-        tmp = tmp | (1 << 3);
-    */
 
 #ifdef ENABLE_FEAT_F4HWN_SLEEP 
     State[4] = (gSetting_set_off << 1) | (gSetting_set_tmr & 0x01);

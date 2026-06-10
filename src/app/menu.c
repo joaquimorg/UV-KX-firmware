@@ -439,7 +439,6 @@ void MENU_AcceptSetting(void)
 
             #ifdef ENABLE_FEAT_F4HWN
                 gDW = gEeprom.DUAL_WATCH;
-                gCB = CROSS_BAND_OFF;
                 gSaveRxMode = true;
             #endif
 

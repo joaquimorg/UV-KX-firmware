@@ -259,19 +259,6 @@ const char* const gSubMenu_PTT_ID[] =
  "APOLLO"
 };
 
-/*const char gSubMenu_PONMSG[][8] =
-{
-#ifdef ENABLE_FEAT_F4HWN
- "ALL",
- "SOUND",
-#else
- "FULL",
-#endif
- "MESSAGE",
- "VOLTAGE",
- "NONE"
-};*/
-
 const char gSubMenu_ROGER[][6] =
 {
  "OFF",
@@ -313,14 +300,6 @@ const char gSubMenu_RX_TX[][6] =
  "RX",
  "TX/RX"
 };
-
-/*const char gSubMenu_BAT_TXT[][8] =
-{
- "NONE",
- "VOLTAGE",
- "PERCENT"
-};
-*/
 
 const char gSubMenu_BATTYP[][9] =
 {
