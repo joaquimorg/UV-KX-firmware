@@ -428,6 +428,36 @@ struct {
     u8 dacGain;
 } cal;
 
+// extra VFO slots C/D (4-slot watch firmware)
+#seekto 0x1F90;
+struct {
+  ul32 freq;
+  ul32 offset;
+  u8 rxcode;
+  u8 txcode;
+  u8 txcodeflag:4,
+  rxcodeflag:4;
+  u8 modulation:4,
+  offsetDir:4;
+  u8 __UNUSED1:1,
+  txLock:1,
+  busyChLockout:1,
+  txpower:3,
+  bandwidth:1,
+  freq_reverse:1;
+  u8 __UNUSED2:4,
+  dtmf_pttid:3,
+  dtmf_decode:1;
+  u8 step;
+  u8 scrambler;
+} slot_vfo[2];
+
+struct {
+  u8 screen;
+  u8 mr;
+  u8 freqch;
+} slot_idx[2];
+
 
 #seekto 0x1FF0;
 struct {
@@ -533,7 +563,7 @@ SCRAMBLER_LIST = ["OFF", "2600Hz", "2700Hz", "2800Hz", "2900Hz", "3000Hz",
 COMPANDER_LIST = ["OFF", "TX", "RX", "TX/RX"]
 
 # rx mode
-RXMODE_LIST = ["MAIN ONLY", "DUAL RX RESPOND", "CROSS BAND", "MAIN TX DUAL RX"]
+RXMODE_LIST = ["MAIN ONLY", "WATCH ALL"]
 
 # channel display mode
 CHANNELDISP_LIST = ["Frequency (FREQ)", "CHANNEL NUMBER", "NAME", "Name + Frequency (NAME + FREQ)"]
@@ -674,7 +704,7 @@ WELCOME_LIST = ["Message line 1, Voltage, Sound (ALL)", "Make 2 short sounds (SO
 VOICE_LIST = ["OFF", "Chinese", "English"]
 
 # ACTIVE CHANNEL
-TX_VFO_LIST = ["A", "B"]
+TX_VFO_LIST = ["A", "B", "C", "D"]
 ALARMMODE_LIST = ["SITE", "TONE"]
 ROGER_LIST = ["OFF", "Roger beep (ROGER)", "MDC data burst (MDC)"]
 RTE_LIST = ["OFF", "100ms", "200ms", "300ms", "400ms",
@@ -683,6 +713,8 @@ VOX_LIST = ["OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 
 MEM_SIZE = 0x2000 # size of all memory
 PROG_SIZE = 0x1d00  # size of the memory that we will write
+SLOTS_START = 0x1F90  # extra VFO slots C/D
+SLOTS_END = 0x1FB8
 MEM_BLOCK = 0x80  # largest block of memory that we can reliably write
 CAL_START = 0x1E00  # calibration memory start address
 F4HWN_START =0x1FF2 # calibration F4HWN memory start address
@@ -1001,6 +1033,15 @@ def do_upload(radio):
             status.max = MEM_SIZE-F4HWN_START
             start_addr = F4HWN_START
             stop_addr = MEM_SIZE
+
+            if not radio.upload_calibration:
+                # also write the extra VFO slot C/D area (calibration upload
+                # already covers it, normal upload does not)
+                slot_addr = SLOTS_START
+                while slot_addr < SLOTS_END:
+                    dat = radio.get_mmap()[slot_addr:slot_addr+MEM_BLOCK]
+                    _writemem(serport, dat, slot_addr)
+                    slot_addr += MEM_BLOCK
 
     status.msg = "Uploaded OK"
 
@@ -1495,6 +1536,20 @@ class UVK5RadioEgzumer(chirp_common.CloneModeRadio):
                     _mem.NoaaChannel_B = _mem.ScreenChannel_B
 
             # TX_VFO  channel selected A,B
+            # extra slots C/D 0x1FB0 / 0x1F90
+            elif elname in ("slot0_chn", "slot1_chn"):
+                slot = int(elname[4])
+                chn = int(element.value)
+                _mem.slot_idx[slot].screen = chn
+                if chn < 200:
+                    _mem.slot_idx[slot].mr = chn
+                else:
+                    _mem.slot_idx[slot].freqch = chn
+
+            elif elname in ("slot0_freq", "slot1_freq"):
+                slot = int(elname[4])
+                _mem.slot_vfo[slot].freq = int(float(element.value) * 100000)
+
             elif elname == "TX_VFO":
                 _mem.TX_VFO = int(element.value)
 
@@ -1530,10 +1585,8 @@ class UVK5RadioEgzumer(chirp_common.CloneModeRadio):
 
             # RX Mode
             elif elname == "rx_mode":
-                tmptxmode = int(element.value)
-                tmpmainvfo = _mem.TX_VFO + 1
-                _mem.crossband = tmpmainvfo * bool(tmptxmode & 0b10)
-                _mem.dual_watch = tmpmainvfo * bool(tmptxmode & 0b01)
+                _mem.crossband = 0
+                _mem.dual_watch = int(element.value) & 0b01
 
             # Battery Save
             elif elname == "battery_save":
@@ -2309,6 +2362,28 @@ class UVK5RadioEgzumer(chirp_common.CloneModeRadio):
         tx_vfo_setting.set_doc('Main VFO: To select which VFO is active, ' + \
                                '( A at the top, B at the bottom ) ')
 
+        # extra watch slots C/D (stored at 0x1F90)
+        slot_settings = []
+        for sidx, slot_name in enumerate(("C", "D")):
+            tmpchn = list_def(_mem.slot_idx[sidx].screen, ch_list, 0)
+            val = RadioSettingValueList(ch_list, None, tmpchn)
+            chn_setting = RadioSetting("slot%d_chn" % sidx,
+                                       "VFO %s Current Channel/Band" % slot_name, val)
+            chn_setting.set_doc('VFO %s current channel/band: To select what is in the VFO %s\n'
+                                '* CHANNEL number M1-M200\n'
+                                '* BAND F1-F7' % (slot_name, slot_name))
+            slot_settings.append(chn_setting)
+
+            slotfreq = int(_mem.slot_vfo[sidx].freq)
+            if slotfreq in (0xFFFFFFFF, 0):
+                slotfreq = 43335000  # 433.35 MHz default, same as the firmware
+            val = RadioSettingValueFloat(1.0, 1300.0, slotfreq / 100000.0, 0.00001, 5)
+            freq_setting = RadioSetting("slot%d_freq" % sidx,
+                                        "VFO %s Frequency (MHz)" % slot_name, val)
+            freq_setting.set_doc('VFO %s frequency used when the slot is in band/frequency mode' % slot_name)
+            slot_settings.append(freq_setting)
+
+
                                      
         # Set_Low_Power f4hwn
         tmpsetpwr = list_def(_mem.set_pwr, SET_LOW_LIST, 0)
@@ -2572,17 +2647,12 @@ class UVK5RadioEgzumer(chirp_common.CloneModeRadio):
         vox_setting = RadioSetting("vox", "Voice-Operated Switch (VOX)", val)
         vox_setting.set_doc('VOX: Voice TX activation sensitivity level')
         
-        tmprxmode = list_def((bool(_mem.crossband) << 1)
-                             + bool(_mem.dual_watch),
-                             RXMODE_LIST, 0)
+        tmprxmode = list_def(int(bool(_mem.dual_watch)), RXMODE_LIST, 0)
         val = RadioSettingValueList(RXMODE_LIST, None, tmprxmode)
         rx_mode_setting = RadioSetting("rx_mode", "RX Mode (RX MODE)", val)
         rx_mode_setting.set_doc('RX MODE:\n' + \
-                                '* MAIN ONLY : Transmits and listens on the main frequency\n' + \
-                                '* DUAL RX RESPOND : Listens both frequencies, if signal received on the secondary frequency, it locks to \n' + \
-                                'it for a couple of seconds so you can respond to the call (DWR)\n' + \
-                                '* CROSS BAND : Always transmits on the primary and listens on the secondary frequency (XB)\n' + \
-                                '* MAIN TX DUAL RX : Always transmits on the primary, listens to both (DW)')
+                                '* MAIN ONLY : Transmits and listens on the selected slot only\n' + \
+                                '* WATCH ALL : Watches all 4 VFO slots (A/B/C/D), always transmits on the selected slot (DW)')
 
         val = RadioSettingValueBoolean(_mem.freq_mode_allowed)
         freq_mode_allowed_setting = RadioSetting("freq_mode_allowed", "Frequency Mode Allowed", val)
@@ -3434,6 +3504,8 @@ class UVK5RadioEgzumer(chirp_common.CloneModeRadio):
 
         basic.append(freq0_setting)
         basic.append(freq1_setting)
+        for slot_setting in slot_settings:
+            basic.append(slot_setting)
         basic.append(tx_vfo_setting)
         basic.append(keypad_lock_setting)
 
