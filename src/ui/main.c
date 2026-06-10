@@ -583,13 +583,16 @@ void UI_DisplayMain(void)
     UI_DrawFrequencyBig(invertFreqVFO1, displayFreqVFO1, 111, 19);
 
 
+    // divider between the detailed block and the secondary slots
+    UI_DrawDotline(0, 28, true);
+
     // draw the three secondary slots as compact rows
     // row layout: slot letter badge | channel name / number | frequency
 
     for (unsigned int i = 0; i < NUM_VFO_SLOTS - 1; i++)
     {
         const unsigned int slot = (sel + 1 + i) % NUM_VFO_SLOTS;
-        const uint8_t rowBase = 35 + i * 8;    // text baseline of this row
+        const uint8_t rowBase = 36 + i * 7;    // text baseline of this row, rows occupy y=30..50
         const bool rxRow = rxSlot[slot];
         const char slotLetter[2] = {(char)('A' + slot), 0};
 
@@ -603,7 +606,7 @@ void UI_DisplayMain(void)
         SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[slot]);
         if (String[0] != 0)
         {
-            String[10] = 0;    // keep clear of the frequency on the right
+            String[13] = 0;    // keep clear of the frequency on the right
             UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, true, false, false, String);
         }
         else if (IS_MR_CHANNEL(gEeprom.ScreenChannel[slot]))
@@ -612,7 +615,8 @@ void UI_DisplayMain(void)
         }
         // frequency mode without a name: the frequency on the right is enough
 
-        // frequency, right aligned - inverted while receiving
+        // frequency, right aligned in the small font - inverted while receiving
+        UI_SetFont(FONT_5_TR);
         const uint32_t frequency = gEeprom.VfoInfo[slot].pRX->Frequency;
         UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 126, rowBase, true, rxRow, false,
                        "%lu.%03lu.%02lu",
@@ -660,7 +664,7 @@ void UI_DisplayMain(void)
     
     // TODO : create icons for the following statuses
     if (gEeprom.KEY_LOCK) {
-        UI_DrawLock(88, 50, false);
+        UI_DrawLock(68, 56, false);
     }
     else if (gWasFKeyPressed) {
         UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 97, 56, true, true, false, "F");        
