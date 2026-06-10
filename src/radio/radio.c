@@ -400,6 +400,10 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
     {   // 16 bytes allocated to the channel name but only 10 used, the rest are 0's
         SETTINGS_FetchChannelName(pVfo->Name, channel);
     }
+    else
+    {   // frequency mode - drop any name left over from a previous MR channel
+        pVfo->Name[0] = 0;
+    }
 
     if (!pVfo->FrequencyReverse)
     {

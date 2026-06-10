@@ -391,6 +391,10 @@ void MENU_AcceptSetting(void)
             }
 
             SETTINGS_SaveChannelName(gSubMenuSelection, edit);
+            // refresh the RAM copies of the names in case the renamed
+            // channel is loaded in one of the VFO slots
+            gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
+            gFlagResetVfos    = true;
             return;
 
         case MENU_SAVE:

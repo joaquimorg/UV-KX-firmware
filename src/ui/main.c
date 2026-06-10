@@ -465,16 +465,14 @@ void UI_DisplayMain(void)
 
     UI_SetFont(FONT_8B_TR);
 
-    SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[sel]);
-    if (String[0] == 0)
-    {   // no channel name, show the channel number instead
-        
-        // TODO
-        // Show Band name
+    // channel name comes from the RAM copy kept by RADIO_ConfigureChannel -
+    // no EEPROM read in the render path
+    if (gEeprom.VfoInfo[sel].Name[0] == 0)
+    {   // no channel name
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, 6, false, false, false, "VFO");
     } else {
         // show the channel name
-        UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, 6, false, false, false, String);
+        UI_DrawString(UI_TEXT_ALIGN_LEFT, 1, 0, 6, false, false, false, gEeprom.VfoInfo[sel].Name);
     }
 
     const char selLetter[2] = {(char)('A' + sel), 0};
@@ -609,12 +607,10 @@ void UI_DisplayMain(void)
         const bool rowLabelFill = !rxRow && blinkActive && lastRxIsRow && !lastRxBlinkPhase;
         UI_DrawString(UI_TEXT_ALIGN_LEFT, 2, 0, rowBase, !rxRow, rowLabelFill, false, slotLetter);
 
-        // channel name (or number) in the middle of the row
-        SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[slot]);
-        if (String[0] != 0)
+        // channel name (or number) in the middle of the row, from the RAM copy
+        if (gEeprom.VfoInfo[slot].Name[0] != 0)
         {
-            String[13] = 0;    // keep clear of the frequency on the right
-            UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, !rxRow, false, false, String);
+            UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, !rxRow, false, false, gEeprom.VfoInfo[slot].Name);
         }
         else if (IS_MR_CHANNEL(gEeprom.ScreenChannel[slot]))
         {
