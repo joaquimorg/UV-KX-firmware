@@ -596,29 +596,36 @@ void UI_DisplayMain(void)
         const bool rxRow = rxSlot[slot];
         const char slotLetter[2] = {(char)('A' + slot), 0};
 
-        // slot letter badge - inverted while receiving, blinking while last-RX
+        // receiving: invert the whole row (black bar, white text)
+        if (rxRow)
+        {
+            UI_SetBlackColor();
+            UI_DrawBox(0, rowBase - 7, 128, 8);
+        }
+
+        // slot letter badge - blinking while last-RX
         UI_SetFont(FONT_8_TR);
         const bool lastRxIsRow = (gLastRxVfoValid && gLastRxVfo == slot);
-        const bool rowLabelFill = rxRow || ((blinkActive && lastRxIsRow) ? !lastRxBlinkPhase : false);
-        UI_DrawString(UI_TEXT_ALIGN_LEFT, 3, 0, rowBase, true, rowLabelFill, false, slotLetter);
+        const bool rowLabelFill = !rxRow && blinkActive && lastRxIsRow && !lastRxBlinkPhase;
+        UI_DrawString(UI_TEXT_ALIGN_LEFT, 2, 0, rowBase, !rxRow, rowLabelFill, false, slotLetter);
 
         // channel name (or number) in the middle of the row
         SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[slot]);
         if (String[0] != 0)
         {
             String[13] = 0;    // keep clear of the frequency on the right
-            UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, true, false, false, String);
+            UI_DrawString(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, !rxRow, false, false, String);
         }
         else if (IS_MR_CHANNEL(gEeprom.ScreenChannel[slot]))
         {
-            UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, true, false, false, "M-%03u", gEeprom.ScreenChannel[slot] + 1);
+            UI_DrawStringf(UI_TEXT_ALIGN_LEFT, 12, 0, rowBase, !rxRow, false, false, "M-%03u", gEeprom.ScreenChannel[slot] + 1);
         }
         // frequency mode without a name: the frequency on the right is enough
 
-        // frequency, right aligned in the small font - inverted while receiving
+        // frequency, right aligned in the small font
         UI_SetFont(FONT_5_TR);
         const uint32_t frequency = gEeprom.VfoInfo[slot].pRX->Frequency;
-        UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 126, rowBase, true, rxRow, false,
+        UI_DrawStringf(UI_TEXT_ALIGN_RIGHT, 0, 126, rowBase, !rxRow, false, false,
                        "%lu.%03lu.%02lu",
                        frequency / 100000,
                        (frequency / 100) % 1000,
