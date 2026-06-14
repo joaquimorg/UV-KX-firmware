@@ -534,6 +534,13 @@ void UI_DisplayMain(void)
     }
     
     // TODO : create icons for the following statuses
+    #ifdef ENABLE_MESSENGER
+    const bool showMsgIcon = (hasNewMessage == 1);
+    if (showMsgIcon) {
+        UI_DrawEnvelope(68, 56, true);
+    }
+    else
+    #endif
     if (gEeprom.KEY_LOCK) {
         UI_DrawLock(68, 56, false);
     }
@@ -543,13 +550,6 @@ void UI_DisplayMain(void)
     else if (gMute) {
         UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 97, 56, true, true, false, "M");
     }
-
-    #ifdef ENABLE_MESSENGER	
-    if (hasNewMessage)
-    {
-        UI_DrawString(UI_TEXT_ALIGN_RIGHT, 0, 90, 56, true, false, false, "MSG");
-    }
-    #endif
 
     DisplayRSSIBar(false);
 

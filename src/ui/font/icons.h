@@ -44,6 +44,12 @@ static unsigned char dotline_bits[] = {
 static unsigned char memory_bits[] = {
    0x2a, 0x7f, 0x7f, 0x7f, 0x2a };
 
+#define envelope_width 10
+#define envelope_height 7
+static unsigned char envelope_bits[] = {
+   0xff, 0x03, 0x01, 0x02, 0x03, 0x03, 0x85, 0x02, 0x49, 0x02, 0x31, 0x02,
+   0xff, 0x03 };
+
 #define lock_width 7
 #define lock_height 7
 static unsigned char lock_bits[] = {

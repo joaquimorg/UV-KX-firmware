@@ -80,6 +80,7 @@ void UI_DrawDotline(u8g2_uint_t x, u8g2_uint_t y, bool color);
 void UI_DrawPs(u8g2_uint_t x, u8g2_uint_t y, bool color);
 void UI_DrawSave(u8g2_uint_t x, u8g2_uint_t y, bool color);
 void UI_DrawLock(u8g2_uint_t x, u8g2_uint_t y, bool inverse);
+void UI_DrawEnvelope(u8g2_uint_t x, u8g2_uint_t y, bool color);
 void UI_DrawBox(u8g2_uint_t x, u8g2_uint_t y, u8g2_uint_t w, u8g2_uint_t h);
 
 void UI_DrawFrequencyBig(bool invert, uint32_t freq, u8g2_uint_t xend, u8g2_uint_t y);

@@ -1508,6 +1508,7 @@ void APP_TimeSlice500ms(void)
 		} else if (hasNewMessage == 2) {
 			hasNewMessage = 1;
 		}
+		gUpdateDisplay = true;
 	}
 #endif
 

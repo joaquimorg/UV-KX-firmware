@@ -364,6 +364,11 @@ void UI_DrawBox(u8g2_uint_t x, u8g2_uint_t y, u8g2_uint_t w, u8g2_uint_t h)
     u8g2_DrawBox(gUiCtx.lcd, x, y, w, h);
 }
 
+void UI_DrawEnvelope(u8g2_uint_t x, u8g2_uint_t y, bool color)
+{
+    UI_DrawXbm(x, y, color, envelope_width, envelope_height, envelope_bits);
+}
+
 void UI_DrawFrequencyBig(bool invert, uint32_t freq, u8g2_uint_t xend, u8g2_uint_t y)
 {
     if (gUiCtx.lcd == NULL) {
