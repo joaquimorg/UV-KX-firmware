@@ -163,6 +163,8 @@ void     BK4819_SendFSKData(uint16_t *pData);
 void     BK4819_PrepareFSKReceive(void);
 
 void     BK4819_PlayRoger(void);
+void     BK4819_PlayApolloTone(uint16_t freq_Hz);
+void     BK4819_PlayCwId(const char *id, const unsigned int len);
 
 void     BK4819_Enable_AfDac_DiscMode_TxDsp(void);
 

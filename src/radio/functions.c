@@ -200,9 +200,10 @@ void FUNCTION_Transmit()
     
     DTMF_Reply();
 
-    if (gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO)
-        //BK4819_PlaySingleTone(2525, 250, 0, gEeprom.DTMF_SIDE_TONE);
-        BK4819_PlaySingleTone(2525, 250, 0, false);
+    if (gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO) {
+        BK4819_PlaySingleTone(2525, 1500, 96, false);
+        SYSTEM_DelayMs(500);
+    }
 
     // Restore TX audio path after any tone/DTMF so the mic is not muted.
     RADIO_SetModulation(gCurrentVfo->Modulation);

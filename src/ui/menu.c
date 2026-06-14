@@ -253,17 +253,17 @@ const char gSubMenu_D_RSP[][11] =
 const char* const gSubMenu_PTT_ID[] =
 {
  "OFF",
- "UP CODE",
- "DOWN CODE",
- "UP+DOWN",
- "APOLLO"
+ "APOLLO",
+ "CW"
 };
 
 const char gSubMenu_ROGER[][6] =
 {
  "OFF",
  "ROGER",
- "MDC"
+ "BEEP1",
+ "BEEP2",
+ "BEEP3"
 };
 
 const char gSubMenu_RESET[][4] =

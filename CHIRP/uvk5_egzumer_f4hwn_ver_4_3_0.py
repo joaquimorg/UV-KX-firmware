@@ -543,7 +543,7 @@ SET_LCK_LIST = ["KEYS", "KEYS+PTT"]
 SET_MET_LIST = ["TINY", "CLASSIC"]
 
 # dtmf_flags
-PTTID_LIST = ["OFF", "UP CODE", "DOWN CODE", "UP+DOWN CODE", "APOLLO QUINDAR"]
+PTTID_LIST = ["OFF", "APOLLO", "CW"]
 
 # power          
 UVK5_POWER_LEVELS = [chirp_common.PowerLevel("USER = < 20mW to 5W", watts=0.000),
@@ -706,7 +706,7 @@ VOICE_LIST = ["OFF", "Chinese", "English"]
 # ACTIVE CHANNEL
 TX_VFO_LIST = ["A", "B", "C", "D"]
 ALARMMODE_LIST = ["SITE", "TONE"]
-ROGER_LIST = ["OFF", "Roger beep (ROGER)", "MDC data burst (MDC)"]
+ROGER_LIST = ["OFF", "Roger beep (ROGER)", "BEEP1", "BEEP2", "BEEP3"]
 RTE_LIST = ["OFF", "100ms", "200ms", "300ms", "400ms",
             "500ms", "600ms", "700ms", "800ms", "900ms", "1000ms"]
 VOX_LIST = ["OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]

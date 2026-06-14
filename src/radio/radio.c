@@ -1019,12 +1019,11 @@ void RADIO_PrepareTX(void)
         gDualWatchCountdown_10ms = dual_watch_count_after_tx_10ms;
         gScheduleDualWatch       = false;
 
-        if (!gRxVfoIsActive)
-        {   // use the current RX vfo
-            gEeprom.RX_VFO = gEeprom.TX_VFO;
-            gRxVfo         = gTxVfo;
-            gRxVfoIsActive = true;
-        }
+        // TX must always use the selected/main VFO, even if dual-watch was
+        // currently listening on another slot.
+        gEeprom.RX_VFO = gEeprom.TX_VFO;
+        gRxVfo         = gTxVfo;
+        gRxVfoIsActive = true;
 
         // let the user see that DW is not active
         gDualWatchActive = false;
@@ -1155,13 +1154,84 @@ void RADIO_SendCssTail(void)
 
 void RADIO_SendEndOfTransmission(void)
 {
-    BK4819_PlayRoger();
-    
-    DTMF_SendEndOfTransmission();
-    if (gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO) {
-        //BK4819_PlaySingleTone(2475, 250, 28, gEeprom.DTMF_SIDE_TONE);
-        BK4819_PlaySingleTone(2475, 250, 28, false);
+    enum {
+        EOT_BEEP_MS = 1500,
+        EOT_GAP_MS  = 500,
+        QUINDAR_TONE_MS = 1500
+    };
+    bool eot_tone_sent = false;
+
+    switch (gEeprom.ROGER) {
+        case ROGER_MODE_ROGER:
+            BK4819_PlaySingleTone(1000, EOT_BEEP_MS, 96, false);
+            SYSTEM_DelayMs(EOT_GAP_MS);
+            BK4819_PlaySingleTone(1200, EOT_BEEP_MS, 96, false);
+            eot_tone_sent = true;
+            break;
+        case ROGER_MODE_BEEP1:
+            BK4819_PlaySingleTone(1000, EOT_BEEP_MS, 96, false);
+            eot_tone_sent = true;
+            break;
+        case ROGER_MODE_BEEP2:
+            // HAM-style courtesy tone: Morse "K" (-.-), meaning "over/go ahead".
+            BK4819_PlaySingleTone(800, 900, 96, false);
+            SYSTEM_DelayMs(300);
+            BK4819_PlaySingleTone(800, 300, 96, false);
+            SYSTEM_DelayMs(300);
+            BK4819_PlaySingleTone(800, 900, 96, false);
+            eot_tone_sent = true;
+            break;
+        case ROGER_MODE_BEEP3:
+            BK4819_PlaySingleTone(1200, EOT_BEEP_MS, 96, false);
+            SYSTEM_DelayMs(EOT_GAP_MS);
+            BK4819_PlaySingleTone(1000, EOT_BEEP_MS, 96, false);
+            SYSTEM_DelayMs(EOT_GAP_MS);
+            BK4819_PlaySingleTone(800, EOT_BEEP_MS, 96, false);
+            eot_tone_sent = true;
+            break;
+        default:
+            break;
     }
+
+    DTMF_SendEndOfTransmission();
+    if (gTxVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO) {
+        BK4819_PlaySingleTone(2475, QUINDAR_TONE_MS, 96, false);
+        eot_tone_sent = true;
+    }
+    else if (gTxVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_CW) {
+        char logo_line1[16];
+        char id[sizeof(logo_line1)];
+        unsigned int n = 0;
+
+        EEPROM_ReadBuffer(0x0EB0, logo_line1, sizeof(logo_line1));
+        for (unsigned int i = 0; i < sizeof(logo_line1); i++) {
+            const char c = logo_line1[i];
+            if (c == 0 || (uint8_t)c == 0xFF)
+                break;
+            if ((c >= '0' && c <= '9') ||
+                (c >= 'A' && c <= 'Z') ||
+                (c >= 'a' && c <= 'z') ||
+                c == '/' || c == '-' || c == '.')
+            {
+                id[n++] = c;
+            }
+            else if (c == ' ' && n > 0) {
+                id[n++] = c;
+            }
+        }
+
+        while (n > 0 && id[n - 1] == ' ')
+            n--;
+
+        if (n > 0) {
+            BK4819_PlayCwId(id, n);
+            eot_tone_sent = true;
+        }
+    }
+
+    if (eot_tone_sent)
+        SYSTEM_DelayMs(500);
+
     BK4819_ExitDTMF_TX(true);
 
     // send the CTCSS/DCS tail tone - allows the receivers to mute the usual FM squelch tail/crash

@@ -33,8 +33,6 @@
     #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-static const uint16_t FSK_RogerTable[7] = {0xF1A2, 0x7446, 0x61A4, 0x6544, 0x4E8A, 0xE044, 0xEA84};
-
 static uint16_t gBK4819_GpioOutState;
 
 bool gRxIdleMode;
@@ -67,28 +65,6 @@ static const struct DTMF_TonePair DTMF_TONES[] = {
     {941, 1477},
 };
 #endif
-
-struct reg_value {
-    BK4819_REGISTER_t reg;
-    uint16_t value;
-};
-
-static const struct reg_value RogerMDC_Configuration[] = {
-    { BK4819_REG_58, 0x37C3 },  // FSK Enable,
-                                    // RX Bandwidth FFSK 1200/1800
-                                    // 0xAA or 0x55 Preamble
-                                    // 11 RX Gain,
-                                    // 101 RX Mode
-                                    // TX FFSK 1200/1800
-    { BK4819_REG_72, 0x3065 },  // Set Tone-2 to 1200Hz
-    { BK4819_REG_70, 0x00E0 },  // Enable Tone-2 and Set Tone2 Gain
-    { BK4819_REG_5D, 0x0D00 },  // Set FSK data length to 13 bytes
-    { BK4819_REG_59, 0x8068 },  // 4 byte sync length, 6 byte preamble, clear TX FIFO
-    { BK4819_REG_59, 0x0068 },  // Same, but clear TX FIFO is now unset (clearing done)
-    { BK4819_REG_5A, 0x5555 },  // First two sync bytes
-    { BK4819_REG_5B, 0x55AA },  // End of sync bytes. Total 4 bytes: 555555aa
-    { BK4819_REG_5C, 0xAA30 },  // Disable CRC
-};
 
 static const int8_t gLnaShortTab[] = {-28, -24, -19, 0};
 static const int8_t gLnaTab[] = {-24, -19, -14, -9, -6, -4, -2, 0};
@@ -1787,75 +1763,178 @@ void BK4819_PrepareFSKReceive(void)
     BK4819_WriteRegister(BK4819_REG_59, 0x3068);
 }
 
-static void BK4819_PlayRogerNormal(void)
+// --- Tone-burst helpers (used by the roger beeps and the CW identifier) ---
+//
+// These transmit a tone over the air AND route it to the speaker so the
+// operator hears it locally. Keying is done at the tone generator (REG70) so
+// each element starts and stops cleanly - toggling the TX mute alone does not
+// gate the local sidetone and produces clicks instead of distinct tones.
+
+#define TONE_TX_GAIN  96u   // REG70 tone1 tuning gain
+
+// Open a tone-burst session: speaker on, TX un-muted, tone generator off.
+static void BK4819_ToneTxBegin(void)
 {
-    #if 0
-        const uint32_t tone1_Hz = 500;
-        const uint32_t tone2_Hz = 700;
-    #else
-        // motorola type
-        const uint32_t tone1_Hz = 1540;
-        const uint32_t tone2_Hz = 1310;
-    #endif
-
-
     BK4819_EnterTxMute();
-    BK4819_SetAF(BK4819_AF_MUTE);
+    BK4819_SetAF(BK4819_AF_BEEP);
+    AUDIO_AudioPathOn();
 
-    BK4819_WriteRegister(BK4819_REG_70, BK4819_REG_70_ENABLE_TONE1 | (66u << BK4819_REG_70_SHIFT_TONE1_TUNING_GAIN));
-
+    BK4819_WriteRegister(BK4819_REG_70, 0x0000);   // tone off until keyed
     BK4819_EnableTXLink();
     SYSTEM_DelayMs(50);
-
-    BK4819_WriteRegister(BK4819_REG_71, scale_freq(tone1_Hz));
-
     BK4819_ExitTxMute();
-    SYSTEM_DelayMs(80);
-    BK4819_EnterTxMute();
-
-    BK4819_WriteRegister(BK4819_REG_71, scale_freq(tone2_Hz));
-
-    BK4819_ExitTxMute();
-    SYSTEM_DelayMs(80);
-    BK4819_EnterTxMute();
-
-    BK4819_WriteRegister(BK4819_REG_70, 0x0000);
-    BK4819_WriteRegister(BK4819_REG_30, 0xC1FE);   // 1 1 0000 0 1 1111 1 1 1 0
 }
 
-
-void BK4819_PlayRogerMDC(void)
+// Close a tone-burst session and restore the muted state.
+static void BK4819_ToneTxEnd(void)
 {
+    BK4819_EnterTxMute();
+    AUDIO_AudioPathOff();
     BK4819_SetAF(BK4819_AF_MUTE);
-
-    for (unsigned int i = 0; i < ARRAY_SIZE(RogerMDC_Configuration); i++) {
-        BK4819_WriteRegister(RogerMDC_Configuration[i].reg, RogerMDC_Configuration[i].value);
-    }
-
-    // Send the data from the roger table
-    for (unsigned int i = 0; i < ARRAY_SIZE(FSK_RogerTable); i++) {
-        BK4819_WriteRegister(BK4819_REG_5F, FSK_RogerTable[i]);
-    }
-
-    SYSTEM_DelayMs(20);
-
-    // 4 sync bytes, 6 byte preamble, Enable FSK TX
-    BK4819_WriteRegister(BK4819_REG_59, 0x0868);
-
-    SYSTEM_DelayMs(180);
-
-    // Stop FSK TX, reset Tone-2, disable FSK
-    BK4819_WriteRegister(BK4819_REG_59, 0x0068);
     BK4819_WriteRegister(BK4819_REG_70, 0x0000);
-    BK4819_WriteRegister(BK4819_REG_58, 0x0000);
+}
+
+// Key one tone element: sound freq_Hz for on_ms, then go silent for off_ms.
+static void BK4819_ToneElement(uint16_t freq_Hz, uint16_t on_ms, uint16_t off_ms)
+{
+    BK4819_WriteRegister(BK4819_REG_71, scale_freq(freq_Hz));
+    BK4819_WriteRegister(BK4819_REG_70, BK4819_REG_70_ENABLE_TONE1 | (TONE_TX_GAIN << BK4819_REG_70_SHIFT_TONE1_TUNING_GAIN));
+    SYSTEM_DelayMs(on_ms);
+    BK4819_WriteRegister(BK4819_REG_70, 0x0000);   // tone off (gap)
+    if (off_ms)
+        SYSTEM_DelayMs(off_ms);
+}
+
+static void BK4819_PlayRogerNormal(void)
+{
+    // motorola type two-tone roger
+    BK4819_PlaySingleTone(1540, 80, TONE_TX_GAIN, false);
+    BK4819_PlaySingleTone(1310, 80, TONE_TX_GAIN, false);
+}
+
+// Play a sequence of single tones. Each entry is {frequency in Hz, duration in
+// ms}; a zero frequency inserts a silent gap of the given duration.
+struct roger_tone { uint16_t freq_Hz; uint16_t ms; };
+
+static void BK4819_PlayToneSequence(const struct roger_tone *tones, const unsigned int count)
+{
+    for (unsigned int i = 0; i < count; i++) {
+        if (tones[i].freq_Hz == 0)
+            SYSTEM_DelayMs(tones[i].ms);
+        else
+            BK4819_PlaySingleTone(tones[i].freq_Hz, tones[i].ms, TONE_TX_GAIN, false);
+    }
+}
+
+static void BK4819_PlayRogerBeep1(void)
+{
+    static const struct roger_tone seq[] = { {1000, 120} };
+    BK4819_PlayToneSequence(seq, ARRAY_SIZE(seq));
+}
+
+static void BK4819_PlayRogerBeep2(void)
+{
+    static const struct roger_tone seq[] = { {1000, 80}, {1500, 120} };
+    BK4819_PlayToneSequence(seq, ARRAY_SIZE(seq));
+}
+
+static void BK4819_PlayRogerBeep3(void)
+{
+    static const struct roger_tone seq[] = { {1500, 70}, {1200, 70}, {900, 110} };
+    BK4819_PlayToneSequence(seq, ARRAY_SIZE(seq));
+}
+
+void BK4819_PlayApolloTone(const uint16_t freq_Hz)
+{
+    BK4819_PlaySingleTone(freq_Hz, 250, TONE_TX_GAIN, false);
 }
 
 void BK4819_PlayRoger(void)
 {
-    if (gEeprom.ROGER == ROGER_MODE_ROGER) {
-        BK4819_PlayRogerNormal();
-    } else if (gEeprom.ROGER == ROGER_MODE_MDC) {
-        BK4819_PlayRogerMDC();
+    switch (gEeprom.ROGER) {
+        case ROGER_MODE_ROGER: BK4819_PlayRogerNormal(); break;
+        case ROGER_MODE_BEEP1: BK4819_PlayRogerBeep1();  break;
+        case ROGER_MODE_BEEP2: BK4819_PlayRogerBeep2();  break;
+        case ROGER_MODE_BEEP3: BK4819_PlayRogerBeep3();  break;
+        default: break;
+    }
+}
+
+// Morse-code element timing (dot unit in ms). dash = 3 units, intra-character
+// gap = 1 unit, inter-character gap = 3 units.
+#define CW_DOT_MS   2000    // dot unit - deliberately slow for readable PTT ID
+#define CW_TONE_HZ  800
+
+static const char *BK4819_MorsePattern(char c)
+{
+    if (c >= 'a' && c <= 'z')
+        c -= 'a' - 'A';
+
+    switch (c) {
+        case 'A': return ".-";
+        case 'B': return "-...";
+        case 'C': return "-.-.";
+        case 'D': return "-..";
+        case 'E': return ".";
+        case 'F': return "..-.";
+        case 'G': return "--.";
+        case 'H': return "....";
+        case 'I': return "..";
+        case 'J': return ".---";
+        case 'K': return "-.-";
+        case 'L': return ".-..";
+        case 'M': return "--";
+        case 'N': return "-.";
+        case 'O': return "---";
+        case 'P': return ".--.";
+        case 'Q': return "--.-";
+        case 'R': return ".-.";
+        case 'S': return "...";
+        case 'T': return "-";
+        case 'U': return "..-";
+        case 'V': return "...-";
+        case 'W': return ".--";
+        case 'X': return "-..-";
+        case 'Y': return "-.--";
+        case 'Z': return "--..";
+        case '0': return "-----";
+        case '1': return ".----";
+        case '2': return "..---";
+        case '3': return "...--";
+        case '4': return "....-";
+        case '5': return ".....";
+        case '6': return "-....";
+        case '7': return "--...";
+        case '8': return "---..";
+        case '9': return "----.";
+        case '/': return "-..-.";
+        case '-': return "-....-";
+        case '.': return ".-.-.-";
+        default:  return NULL;   // unknown char -> word gap
+    }
+}
+
+// Transmit a station ID in Morse code over the air, also routed to the
+// speaker so the operator hears the keying locally.
+void BK4819_PlayCwId(const char *id, const unsigned int len)
+{
+    for (unsigned int i = 0; i < len; i++) {
+        const char *pattern = BK4819_MorsePattern(id[i]);
+
+        if (pattern == NULL) {              // space / unknown -> word gap (7 units)
+            SYSTEM_DelayMs(CW_DOT_MS * 7);
+            continue;
+        }
+
+        for (const char *p = pattern; *p != '\0'; p++) {
+            // dot = 1 unit, dash = 3 units, followed by a 1-unit intra-char gap
+            const uint16_t on_ms = (*p == '-') ? (CW_DOT_MS * 3) : CW_DOT_MS;
+            BK4819_PlaySingleTone(CW_TONE_HZ, on_ms, TONE_TX_GAIN, false);
+            if (p[1])
+                SYSTEM_DelayMs(CW_DOT_MS);
+        }
+
+        SYSTEM_DelayMs(CW_DOT_MS * 3);
     }
 }
 

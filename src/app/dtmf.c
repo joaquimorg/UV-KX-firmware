@@ -83,36 +83,9 @@ void DTMF_clear_RX(void)
 
 void DTMF_SendEndOfTransmission(void)
 {
-    /*if (gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO) {
-        BK4819_PlaySingleTone(2475, 250, 28, gEeprom.DTMF_SIDE_TONE);
-    }*/
-
-    if ((gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_TX_DOWN || gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_BOTH)
-#ifdef ENABLE_DTMF_CALLING
-        && gDTMF_CallState == DTMF_CALL_STATE_NONE
-#endif
-    ) { // end-of-tx
-        if (gEeprom.DTMF_SIDE_TONE) {
-            AUDIO_AudioPathOn();
-            gEnableSpeaker = true;
-            SYSTEM_DelayMs(60);
-        }
-
-        BK4819_EnterDTMF_TX(gEeprom.DTMF_SIDE_TONE);
-
-        BK4819_PlayDTMFString(
-                gEeprom.DTMF_DOWN_CODE,
-                0,
-                gEeprom.DTMF_FIRST_CODE_PERSIST_TIME,
-                gEeprom.DTMF_HASH_CODE_PERSIST_TIME,
-                gEeprom.DTMF_CODE_PERSIST_TIME,
-                gEeprom.DTMF_CODE_INTERVAL_TIME);
-
-        AUDIO_AudioPathOff();
-        gEnableSpeaker = false;
-    }
-
-    //BK4819_ExitDTMF_TX(true);
+    // PTT-ID end-of-TX signalling (APOLLO / CW) is handled in
+    // RADIO_SendEndOfTransmission(); nothing to do here for the
+    // remaining PTT-ID modes.
 }
 
 bool DTMF_ValidateCodes(char *pCode, const unsigned int size)
@@ -458,7 +431,7 @@ void DTMF_Reply(void)
 #endif
                 gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO ||
                 gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_OFF    ||
-                gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_TX_DOWN)
+                gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_CW)
             {
                 gDTMF_ReplyState = DTMF_REPLY_NONE;
                 return;
