@@ -1084,12 +1084,13 @@ void APP_Update(void)
 #else
             gPowerSave_10ms = gEeprom.BATTERY_SAVE * 10;
 #endif
-            gRxIdleMode     = true;
+            gRxIdleMode     = false;
             dwHopsRemaining = 0;
 
             BK4819_DisableVox();
-            BK4819_Sleep();
-            BK4819_ToggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, false);
+            BK4819_SetupPowerAmplifier(0, 0);
+            BK4819_ToggleGpioOut(BK4819_GPIO1_PIN29_PA_ENABLE, false);
+            BK4819_ToggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, true);
 
             // Authentic device checked removed
 

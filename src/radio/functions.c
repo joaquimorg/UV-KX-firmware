@@ -128,14 +128,20 @@ void FUNCTION_PowerSave() {
     #endif
     gPowerSaveCountdownExpired = false;
 
-    gRxIdleMode = true;
+    gRxIdleMode = false;
 
     gMonitor = false;
 
-    BK4819_DisableVox();
-    BK4819_Sleep();
+    gEeprom.RX_VFO = gEeprom.TX_VFO;
+    gRxVfo         = gTxVfo;
+    gRxVfoIsActive = true;
 
-    BK4819_ToggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, false);
+    RADIO_SetupRegisters(false);
+
+#ifdef ENABLE_VOX
+    if (gEeprom.VOX_SWITCH)
+        BK4819_EnableVox(gEeprom.VOX1_THRESHOLD, gEeprom.VOX0_THRESHOLD);
+#endif
 
     gUpdateStatus = true;
 
