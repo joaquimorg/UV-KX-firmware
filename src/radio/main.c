@@ -242,6 +242,12 @@ void Main(void)
 
         GPIO_ClearBit(&GPIOA->DATA, GPIOA_PIN_VOICE_0);
 
+        for (unsigned int i = 0; i < NUM_VFO_SLOTS; i++)
+            RADIO_ConfigureChannel(i, VFO_CONFIGURE_RELOAD);
+        RADIO_SelectVfos();
+        SYSTEM_DelayMs(20);
+        RADIO_SetupRegisters(true);
+
         gUpdateStatus = true;
 
 #ifdef ENABLE_VOICE
