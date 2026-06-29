@@ -22,6 +22,7 @@
 #include "functions.h"
 #include "frequencies.h"
 #include "radio.h"
+#include "driver/keyboard.h"
 
 #ifdef ENABLE_MESSENGER_NOTIFICATION
 extern bool gPlayMSGRing;
@@ -34,6 +35,10 @@ uint32_t APP_SetFrequencyByStep(VFO_Info_t *pInfo, int8_t direction);
 void     APP_Update(void);
 void     APP_TimeSlice10ms(void);
 void     APP_TimeSlice500ms(void);
+
+#ifdef ENABLE_UART_RC
+void     APP_RemoteControlKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld);
+#endif
 
 #endif
 

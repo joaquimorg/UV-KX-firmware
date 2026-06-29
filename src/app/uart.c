@@ -46,6 +46,14 @@
     #include "sram-overlay.h"
 #endif
 
+#ifdef ENABLE_UART_RC
+    #include "app/app.h"
+    #include "driver/keyboard.h"
+    #include "helper/battery.h"
+    #include "radio.h"
+    #include "ui/ui.h"
+#endif
+
 #define UNUSED(x) (void)(x)
 
 #define DMA_INDEX(x, y) (((x) + (y)) % sizeof(UART_DMA_Buffer))
@@ -639,6 +647,185 @@ void sendScreenBuffer(const void* buffer, uint32_t size) {
     }
 }
 
+#ifdef ENABLE_UART_RC
+
+// ---------------------------------------------------------------------------
+//  RS-232 Remote Control commands (ENABLE_UART_RC)
+//
+//  These commands let an external PC application drive the radio either by
+//  injecting raw key events (exactly as if the physical keypad was used) or
+//  through a few high level helpers (TX power, bandwidth, modulation, ...).
+//  All replies use the standard framed/CRC protocol. The client must first
+//  open a plaintext session with CMD 0x0514.
+// ---------------------------------------------------------------------------
+
+// generic 1-byte status reply used by the "set" commands
+typedef struct __attribute__((__packed__)) {
+    Header_t Header;
+    struct __attribute__((__packed__)) {
+        uint16_t Command;   // the command this is acknowledging
+        uint8_t  Result;    // 1 = applied, 0 = rejected/invalid
+    } Data;
+} REPLY_RC_ACK_t;
+
+static void RC_SendAck(uint16_t command, uint8_t result)
+{
+    REPLY_RC_ACK_t Reply;
+    Reply.Header.ID   = 0x0B81;
+    Reply.Header.Size = sizeof(Reply.Data);
+    Reply.Data.Command = command;
+    Reply.Data.Result  = result;
+    SendReply(&Reply, sizeof(Reply));
+}
+
+// 0x0B01 - inject a key event (acts like a physical keypress)
+static void CMD_0B01_RemoteKey(const uint8_t *pBuffer)
+{
+    typedef struct __attribute__((__packed__)) {
+        Header_t Header;
+        uint8_t  Key;     // KEY_Code_t (0..18)
+        uint8_t  Flags;   // bit0 = pressed (1) / released (0), bit1 = held
+    } CMD_0B01_t;
+
+    const CMD_0B01_t *pCmd = (const CMD_0B01_t *)pBuffer;
+
+    if (pCmd->Key >= KEY_INVALID) {
+        RC_SendAck(0x0B01, 0);
+        return;
+    }
+
+    APP_RemoteControlKey((KEY_Code_t)pCmd->Key,
+                         (pCmd->Flags & 0x01) ? true : false,
+                         (pCmd->Flags & 0x02) ? true : false);
+
+    RC_SendAck(0x0B01, 1);
+}
+
+// 0x0B02 - report current radio state
+static void CMD_0B02_GetState(void)
+{
+    struct __attribute__((__packed__)) {
+        Header_t Header;
+        struct __attribute__((__packed__)) {
+            uint8_t  TxVfo;        // gEeprom.TX_VFO (active VFO slot)
+            uint8_t  Screen;       // gScreenToDisplay
+            uint8_t  Function;     // gCurrentFunction
+            uint8_t  IsTransmit;   // 1 while transmitting
+            uint32_t RxFrequency;  // current RX frequency (10 Hz units)
+            uint32_t TxFrequency;  // current TX frequency (10 Hz units)
+            uint8_t  Modulation;   // ModulationMode_t
+            uint8_t  Bandwidth;    // 0 = wide, 1 = narrow
+            uint8_t  Power;        // OUTPUT_POWER_*
+            uint8_t  Channel;      // ScreenChannel of active VFO
+            uint8_t  Squelch;      // squelch level
+            uint8_t  Padding;
+            uint16_t Rssi;         // BK4819 RSSI register
+            uint16_t BatteryMv;    // battery voltage in mV
+        } Data;
+    } Reply;
+
+    memset(&Reply, 0, sizeof(Reply));
+    Reply.Header.ID   = 0x0B82;
+    Reply.Header.Size = sizeof(Reply.Data);
+
+    Reply.Data.TxVfo       = gEeprom.TX_VFO;
+    Reply.Data.Screen      = gScreenToDisplay;
+    Reply.Data.Function    = gCurrentFunction;
+    Reply.Data.IsTransmit  = (gCurrentFunction == FUNCTION_TRANSMIT) ? 1 : 0;
+    Reply.Data.RxFrequency = (gRxVfo != NULL && gRxVfo->pRX != NULL) ? gRxVfo->pRX->Frequency : 0;
+    Reply.Data.TxFrequency = (gTxVfo != NULL && gTxVfo->pTX != NULL) ? gTxVfo->pTX->Frequency : 0;
+    Reply.Data.Modulation  = (gRxVfo != NULL) ? gRxVfo->Modulation : 0;
+    Reply.Data.Bandwidth   = (gRxVfo != NULL) ? gRxVfo->CHANNEL_BANDWIDTH : 0;
+    Reply.Data.Power       = (gTxVfo != NULL) ? gTxVfo->OUTPUT_POWER : 0;
+    Reply.Data.Channel     = gEeprom.ScreenChannel[gEeprom.TX_VFO];
+    Reply.Data.Squelch     = gEeprom.SQUELCH_LEVEL;
+    Reply.Data.Rssi        = BK4819_ReadRegister(BK4819_REG_67) & 0x01FF;
+    Reply.Data.BatteryMv   = gBatteryVoltageAverage * 10;
+
+    SendReply(&Reply, sizeof(Reply));
+}
+
+// 0x0B03 - set TX power (OUTPUT_POWER_*)
+static void CMD_0B03_SetPower(const uint8_t *pBuffer)
+{
+    typedef struct __attribute__((__packed__)) {
+        Header_t Header;
+        uint8_t  Power;
+    } CMD_0B03_t;
+
+    const CMD_0B03_t *pCmd = (const CMD_0B03_t *)pBuffer;
+
+    if (gTxVfo == NULL || pCmd->Power > OUTPUT_POWER_HIGH) {
+        RC_SendAck(0x0B03, 0);
+        return;
+    }
+
+    gTxVfo->OUTPUT_POWER = pCmd->Power;
+    RADIO_ConfigureSquelchAndOutputPower(gTxVfo);
+    RADIO_SetupRegisters(true);
+
+    gRequestSaveChannel = 1;
+    gUpdateDisplay      = true;
+
+    RC_SendAck(0x0B03, 1);
+}
+
+// 0x0B04 - set channel bandwidth (0 = wide, 1 = narrow)
+static void CMD_0B04_SetBandwidth(const uint8_t *pBuffer)
+{
+    typedef struct __attribute__((__packed__)) {
+        Header_t Header;
+        uint8_t  Bandwidth;
+    } CMD_0B04_t;
+
+    const CMD_0B04_t *pCmd = (const CMD_0B04_t *)pBuffer;
+
+    if (gTxVfo == NULL || pCmd->Bandwidth > BK4819_FILTER_BW_NARROW) {
+        RC_SendAck(0x0B04, 0);
+        return;
+    }
+
+    gTxVfo->CHANNEL_BANDWIDTH = pCmd->Bandwidth;
+    if (gRxVfo != NULL)
+        gRxVfo->CHANNEL_BANDWIDTH = pCmd->Bandwidth;
+
+    RADIO_SetupRegisters(true);
+
+    gRequestSaveChannel = 1;
+    gUpdateDisplay      = true;
+
+    RC_SendAck(0x0B04, 1);
+}
+
+// 0x0B05 - set modulation (ModulationMode_t)
+static void CMD_0B05_SetModulation(const uint8_t *pBuffer)
+{
+    typedef struct __attribute__((__packed__)) {
+        Header_t Header;
+        uint8_t  Modulation;
+    } CMD_0B05_t;
+
+    const CMD_0B05_t *pCmd = (const CMD_0B05_t *)pBuffer;
+
+    if (gTxVfo == NULL || pCmd->Modulation >= MODULATION_UKNOWN) {
+        RC_SendAck(0x0B05, 0);
+        return;
+    }
+
+    gTxVfo->Modulation = (ModulationMode_t)pCmd->Modulation;
+    if (gRxVfo != NULL)
+        gRxVfo->Modulation = (ModulationMode_t)pCmd->Modulation;
+
+    RADIO_SetModulation((ModulationMode_t)pCmd->Modulation);
+
+    gRequestSaveChannel = 1;
+    gUpdateDisplay      = true;
+
+    RC_SendAck(0x0B05, 1);
+}
+
+#endif // ENABLE_UART_RC
+
 void UART_HandleCommand(void)
 {
     switch (UART_Command.Header.ID)
@@ -703,8 +890,30 @@ void UART_HandleCommand(void)
             break;
         case 0x0A04:
             sendScreenData = false;
-            break;            
-        
+            break;
+
+#ifdef ENABLE_UART_RC
+        case 0x0B01:
+            CMD_0B01_RemoteKey(UART_Command.Buffer);
+            break;
+
+        case 0x0B02:
+            CMD_0B02_GetState();
+            break;
+
+        case 0x0B03:
+            CMD_0B03_SetPower(UART_Command.Buffer);
+            break;
+
+        case 0x0B04:
+            CMD_0B04_SetBandwidth(UART_Command.Buffer);
+            break;
+
+        case 0x0B05:
+            CMD_0B05_SetModulation(UART_Command.Buffer);
+            break;
+#endif
+
     }
     #ifdef ENABLE_FEAT_F4HWN_SCREENSHOT
         gUART_LockScreenshot = 20; // lock screenshot

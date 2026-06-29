@@ -2239,3 +2239,18 @@ Skip:
 
     gUpdateDisplay = true;
 }
+
+#ifdef ENABLE_UART_RC
+// Inject a key event coming from the RS-232 remote control, feeding it through
+// the exact same path as a physical key press so the radio behaves identically.
+void APP_RemoteControlKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
+{
+    if (Key >= KEY_INVALID)
+        return;
+
+    // keep the wake/backlight logic consistent with real key presses
+    boot_counter_10ms = 0;
+
+    ProcessKey(Key, bKeyPressed, bKeyHeld);
+}
+#endif

@@ -2,8 +2,6 @@
 # 0 = disable
 # 1 = enable
 
-ENABLE_REMOTE_CONTROL			?= 0
-ENABLE_UART_DEBUG			  	?= 0
 ENABLE_SPEED_OPTS                ?= 0
 
 ENABLE_MESSENGER              			?= 1
@@ -19,6 +17,7 @@ ENABLE_MESSENGER_UART					?= 1
 ENABLE_FMRADIO                  ?= 0
 ENABLE_FMRADIO_BASIC            ?= 1
 ENABLE_UART                     ?= 1
+ENABLE_UART_RC                  ?= 1
 ENABLE_VOICE                    ?= 0
 ENABLE_VOX                      ?= 0
 ENABLE_ALARM                    ?= 0
@@ -225,13 +224,6 @@ LDFLAGS += -Wl,--print-memory-usage
 CCFLAGS += -DPRINTF_INCLUDE_CONFIG_H
 #CXXFLAGS += -DAUTHOR_NAME=\"$(AUTHOR_NAME)\" -DAUTHOR_STRING=\"$(AUTHOR_STRING)\" -DVERSION_STRING=\"$(VERSION_STRING)\"
 
-ifeq ($(ENABLE_UART_DEBUG),1)
-	CXXFLAGS += -DENABLE_UART_DEBUG
-endif
-ifeq ($(ENABLE_REMOTE_CONTROL),1)
-	CXXFLAGS += -DENABLE_REMOTE_CONTROL
-endif
-
 ifeq ($(ENABLE_MESSENGER),1)
 	CCFLAGS += -DENABLE_MESSENGER
 endif
@@ -262,6 +254,9 @@ ifeq ($(ENABLE_FMRADIO_BASIC),1)
 endif
 ifeq ($(ENABLE_UART),1)
 	CCFLAGS += -DENABLE_UART
+endif
+ifeq ($(ENABLE_UART_RC),1)
+	CCFLAGS += -DENABLE_UART_RC
 endif
 ifeq ($(ENABLE_VOICE),1)
 	CCFLAGS  += -DENABLE_VOICE
