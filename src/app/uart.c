@@ -755,17 +755,13 @@ static void CMD_0B03_SetPower(const uint8_t *pBuffer)
 
     const CMD_0B03_t *pCmd = (const CMD_0B03_t *)pBuffer;
 
-    if (gTxVfo == NULL || pCmd->Power > OUTPUT_POWER_HIGH) {
+    if (pCmd->Power > OUTPUT_POWER_HIGH) {
         RC_SendAck(0x0B03, 0);
         return;
     }
 
-    gTxVfo->OUTPUT_POWER = pCmd->Power;
-    RADIO_ConfigureSquelchAndOutputPower(gTxVfo);
-    RADIO_SetupRegisters(true);
-
-    gRequestSaveChannel = 1;
-    gUpdateDisplay      = true;
+    // heavy re-configuration is deferred to the main loop (see app.c)
+    APP_RemoteControlAction(RC_ACT_POWER, pCmd->Power);
 
     RC_SendAck(0x0B03, 1);
 }
@@ -780,19 +776,12 @@ static void CMD_0B04_SetBandwidth(const uint8_t *pBuffer)
 
     const CMD_0B04_t *pCmd = (const CMD_0B04_t *)pBuffer;
 
-    if (gTxVfo == NULL || pCmd->Bandwidth > BK4819_FILTER_BW_NARROW) {
+    if (pCmd->Bandwidth > BK4819_FILTER_BW_NARROW) {
         RC_SendAck(0x0B04, 0);
         return;
     }
 
-    gTxVfo->CHANNEL_BANDWIDTH = pCmd->Bandwidth;
-    if (gRxVfo != NULL)
-        gRxVfo->CHANNEL_BANDWIDTH = pCmd->Bandwidth;
-
-    RADIO_SetupRegisters(true);
-
-    gRequestSaveChannel = 1;
-    gUpdateDisplay      = true;
+    APP_RemoteControlAction(RC_ACT_BANDWIDTH, pCmd->Bandwidth);
 
     RC_SendAck(0x0B04, 1);
 }
@@ -807,19 +796,12 @@ static void CMD_0B05_SetModulation(const uint8_t *pBuffer)
 
     const CMD_0B05_t *pCmd = (const CMD_0B05_t *)pBuffer;
 
-    if (gTxVfo == NULL || pCmd->Modulation >= MODULATION_UKNOWN) {
+    if (pCmd->Modulation >= MODULATION_UKNOWN) {
         RC_SendAck(0x0B05, 0);
         return;
     }
 
-    gTxVfo->Modulation = (ModulationMode_t)pCmd->Modulation;
-    if (gRxVfo != NULL)
-        gRxVfo->Modulation = (ModulationMode_t)pCmd->Modulation;
-
-    RADIO_SetModulation((ModulationMode_t)pCmd->Modulation);
-
-    gRequestSaveChannel = 1;
-    gUpdateDisplay      = true;
+    APP_RemoteControlAction(RC_ACT_MODULATION, pCmd->Modulation);
 
     RC_SendAck(0x0B05, 1);
 }

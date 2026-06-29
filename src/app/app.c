@@ -1329,6 +1329,11 @@ void APP_TimeSlice10ms(void)
     }
 #endif
 
+#ifdef ENABLE_UART_RC
+    // apply queued remote control actions outside the UART critical section
+    APP_ProcessRemoteControl();
+#endif
+
     if (gReducedService)
         return;
 
@@ -2241,6 +2246,33 @@ Skip:
 }
 
 #ifdef ENABLE_UART_RC
+// RS-232 remote control action queue.
+//
+// UART commands are decoded inside UART_HandleCommand() while interrupts are
+// disabled. Re-configuring the radio (RADIO_SetupRegisters, ProcessKey, ...)
+// relies on interrupt driven delays, so it MUST NOT run from that critical
+// section or the radio locks up (and the display mirror freezes). Instead the
+// UART handlers only enqueue a lightweight action here, and the heavy work is
+// performed from the main loop in APP_ProcessRemoteControl().
+
+#define RC_QUEUE_SIZE 16
+
+static volatile uint8_t rcQueue[RC_QUEUE_SIZE][3]; // [type, a, b]
+static volatile uint8_t rcQueueHead = 0;
+static volatile uint8_t rcQueueTail = 0;
+
+static void APP_RemoteControlEnqueue(uint8_t type, uint8_t a, uint8_t b)
+{
+    const uint8_t next = (uint8_t)((rcQueueHead + 1) % RC_QUEUE_SIZE);
+    if (next == rcQueueTail)
+        return; // queue full, drop the action
+
+    rcQueue[rcQueueHead][0] = type;
+    rcQueue[rcQueueHead][1] = a;
+    rcQueue[rcQueueHead][2] = b;
+    rcQueueHead = next;
+}
+
 // Inject a key event coming from the RS-232 remote control, feeding it through
 // the exact same path as a physical key press so the radio behaves identically.
 void APP_RemoteControlKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
@@ -2248,9 +2280,70 @@ void APP_RemoteControlKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
     if (Key >= KEY_INVALID)
         return;
 
-    // keep the wake/backlight logic consistent with real key presses
-    boot_counter_10ms = 0;
+    APP_RemoteControlEnqueue(RC_ACT_KEY, (uint8_t)Key,
+                             (uint8_t)((bKeyPressed ? 0x01 : 0x00) | (bKeyHeld ? 0x02 : 0x00)));
+}
 
-    ProcessKey(Key, bKeyPressed, bKeyHeld);
+// Queue a high level remote control action (power / bandwidth / modulation).
+void APP_RemoteControlAction(uint8_t type, uint8_t value)
+{
+    APP_RemoteControlEnqueue(type, value, 0);
+}
+
+// Drain and apply queued remote control actions. Runs from the main loop,
+// outside the UART critical section, so the heavy re-configuration is safe.
+void APP_ProcessRemoteControl(void)
+{
+    while (rcQueueTail != rcQueueHead)
+    {
+        const uint8_t type = rcQueue[rcQueueTail][0];
+        const uint8_t a    = rcQueue[rcQueueTail][1];
+        const uint8_t b    = rcQueue[rcQueueTail][2];
+        rcQueueTail = (uint8_t)((rcQueueTail + 1) % RC_QUEUE_SIZE);
+
+        switch (type)
+        {
+            case RC_ACT_KEY:
+                if (a < KEY_INVALID) {
+                    boot_counter_10ms = 0; // behave like a real key press
+                    ProcessKey((KEY_Code_t)a,
+                               (b & 0x01) ? true : false,
+                               (b & 0x02) ? true : false);
+                }
+                break;
+
+            case RC_ACT_POWER:
+                if (gTxVfo != NULL && a <= OUTPUT_POWER_HIGH) {
+                    gTxVfo->OUTPUT_POWER = a;
+                    RADIO_ConfigureSquelchAndOutputPower(gTxVfo);
+                    RADIO_SetupRegisters(true);
+                    gRequestSaveChannel = 1;
+                    gUpdateDisplay      = true;
+                }
+                break;
+
+            case RC_ACT_BANDWIDTH:
+                if (gTxVfo != NULL && a <= BK4819_FILTER_BW_NARROW) {
+                    gTxVfo->CHANNEL_BANDWIDTH = a;
+                    if (gRxVfo != NULL)
+                        gRxVfo->CHANNEL_BANDWIDTH = a;
+                    RADIO_SetupRegisters(true);
+                    gRequestSaveChannel = 1;
+                    gUpdateDisplay      = true;
+                }
+                break;
+
+            case RC_ACT_MODULATION:
+                if (gTxVfo != NULL && a < MODULATION_UKNOWN) {
+                    gTxVfo->Modulation = (ModulationMode_t)a;
+                    if (gRxVfo != NULL)
+                        gRxVfo->Modulation = (ModulationMode_t)a;
+                    RADIO_SetModulation((ModulationMode_t)a);
+                    gRequestSaveChannel = 1;
+                    gUpdateDisplay      = true;
+                }
+                break;
+        }
+    }
 }
 #endif

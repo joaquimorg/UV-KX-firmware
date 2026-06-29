@@ -37,7 +37,16 @@ void     APP_TimeSlice10ms(void);
 void     APP_TimeSlice500ms(void);
 
 #ifdef ENABLE_UART_RC
+enum {
+    RC_ACT_KEY = 0,
+    RC_ACT_POWER,
+    RC_ACT_BANDWIDTH,
+    RC_ACT_MODULATION
+};
+
 void     APP_RemoteControlKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld);
+void     APP_RemoteControlAction(uint8_t type, uint8_t value);
+void     APP_ProcessRemoteControl(void);
 #endif
 
 #endif
